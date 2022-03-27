@@ -1,0 +1,10 @@
+name: xmlt
+description: A library for (de)serializing XML
+version: 0.1.0
+
+authors:
+  - Devonte <https://github.com/devnote-dev>
+
+crystal: 1.3.2
+
+license: MIT
