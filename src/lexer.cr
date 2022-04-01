@@ -1,11 +1,11 @@
 module XMLT
   struct Token
-    property type    : Symbol
-    property key     : Array(Char)
+    property type       : Symbol
+    property key        : Array(Char)
     property attributes : Array(Hash(String, String))
-    property value   : Array(Char)
-    property line    : Int32
-    property column  : Int32
+    property value      : Array(Char)
+    property line       : Int32
+    property column     : Int32
 
     def initialize
       @type = :none
@@ -18,11 +18,11 @@ module XMLT
   end
 
   class Lexer
-    property parsed : Array(Token)
-    property input  : Array(Char)
-    property token  : Token
-    property pos    : Int32
-    property current : Char
+    property parsed   : Array(Token)
+    property input    : Array(Char)
+    property token    : Token
+    property pos      : Int32
+    property current  : Char
 
     def initialize(input : String)
       @parsed = [] of Token
@@ -39,10 +39,11 @@ module XMLT
       @parsed.reject { |t| t.type == :none }
     end
 
-    def next_char : Nil
+    def next_char : Char
       @pos += 1
       @token.column += 1
       @current = @input[@pos]? || '\0'
+      @current
     end
 
     def next_token : Nil
@@ -55,7 +56,7 @@ module XMLT
       when '<'  then read_key
       when '>'  then read_value
       else
-        unexpected_char
+        throw :unexpected
       end
 
       @parsed << @token if @token.type == :eof
@@ -68,20 +69,19 @@ module XMLT
       end
     end
 
-    def read_attr_key : Hash(String, String)
+    def read_attr_key
       key = [] of Char
-      value = uninitialized String
+      value = ""
 
+      puts "reading attr key"
       loop do
         case @current
         when '='
           next_char
           value = read_attr_value
           break
-        when .ascii_letter?
-          key << @current
         else
-          unexpected_char
+          key << @current
         end
 
         next_char
@@ -90,128 +90,112 @@ module XMLT
       {"key" => key.join, "value" => value}
     end
 
-    # TODO: read until > or ?> or space instead of separate
-    def read_attr_value : String
+    def read_attr_value
       value = [] of Char
-      expected = @current == '"' ? :str : :num
-      escaped = true
+      quotes = @current == '"'
+      escaped = false
 
+      puts "reading attr value"
       loop do
         case @current
-        when '"', '?', '>'
+        when '"'
+          throw :unexpected unless quotes
           break unless escaped
           escaped = false
         when '\\'
-          escaped = true
-        when .ascii_number?, '.'
-          value << @current
-        when ' '
-          break if expected == :num
+          throw :unexpected unless quotes
+          escaped = !escaped
+        when ' ', '?', '>'
+          break unless quotes
         else
-          if expected == :num
-            unexpected_char unless ['b', 'e', 'x'].includes? @current
-          end
           value << @current
         end
 
         next_char
       end
+      puts "done"
 
-      next_char
+      skip_whitespace
       value.join
     end
 
     def read_key
-      next_char
       is_key = true
 
+      puts "reading key"
+      skip_whitespace
       loop do
         case @current
-        when '?'
-          unexpected_char unless prev = @input[@pos - 1]?
-          if prev == '<'
-            @token.type = :head
+        when '\0'
+          throw :eof
+        when '<'
+          case next_char
+          when '?' then @token.type = :head
+          when '/' then @token.type = :el_close
           else
-            next_char
-            if @current == '>'
-              next_char
-              return next_token
-            else
-              unexpected_char
-            end
+            @token.type = :el_open
           end
+        when '?'
+          break if next_char == '>'
+          throw :unexpected
         when '>'
           break
         when ' '
           is_key = false
-          skip_whitespace
-        when .ascii_letter?
+        else
           if is_key
-            @token.type = :element if @token.type == :none
             @token.key << @current
           else
             @token.attributes << read_attr_key
           end
-        else
-          unexpected_char
         end
 
         next_char
       end
 
-      return next_token if @token.type == :head
-      read_value
-      close_key = [] of Char
-      skip_whitespace
+      puts "done"
+      if @token.type == :el_open
+        read_value
+      else
+        next_token
+      end
+    end
 
+    def read_value
+      escaped = false
+
+      puts "reading value"
       loop do
         case @current
+        when '\0'
+          throw :eof
+        when '\\'
+          escaped = !escaped
         when '<'
-          next_char
-          unless @current == '/'
-            raise "expected closing bracket, got '#{@current}'"
-          end
-        when '>', '\0'
-          break
-        when .ascii_letter?
-          close_key << @current
-        when .ascii_number?
-          raise "cannot use numbers in keys"
+          break unless escaped
+          escaped = false
         else
-          unexpected_char
+          @token.value << @current
         end
 
         next_char
-      end
-
-      unless @token.key.join == close_key.join
-        raise "mismatched closing keys (line %d, column %d)" % [@token.line, @token.column]
       end
 
       next_token
     end
 
-    def read_value : Nil
-      next_char
-
-      loop do
-        case @current
-        when '<', '\0'
-          break
-        when .ascii_alphanumeric?
-          @token.value << @current
-        else
-          unexpected_char
-        end
-
-        next_char
-      end
+    private def throw(message : String) : NoReturn
+      raise message + " (line %d, column %d)" % [@token.line, @token.column]
     end
 
-    private def unexpected_char
-      raise "unexpected character '%s' (line %d, column %d)" % [
-        @current, @token.line, @token.column
-      ]
+    private def throw(key : Symbol, extra : String? = nil) : NoReturn
+      errors = {
+        :unexpected => "unexpected character '#{@current}'",
+        :expected => "expected '#{extra}'; got '#{@current}'",
+        :eof => "unexpected EOF"
+      }
+
+      throw errors[key]
     end
   end
 end
