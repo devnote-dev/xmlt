@@ -5,5 +5,14 @@ module XMLT
   VERSION = "0.1.0"
 end
 
-tokens = XMLT::Lexer.new(%(<?xml encoding="utf-8" version="1.0"?><one>1</one>)).parse
+xml = <<-XML
+<?xml version="1.0" encoding="utf-8"?>
+<Person>
+  <firstname>foo</firstname>
+  <lastname>bar</lastname>
+  <!-- <gender>baz</male> -->
+</Person>
+XML
+
+tokens = XMLT::Lexer.new(xml).parse
 puts tokens

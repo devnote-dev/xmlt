@@ -62,126 +62,120 @@ module XMLT
       @parsed << @token if @token.type == :eof
     end
 
-    def skip_whitespace : Nil
+    def skip_whitespace
       if [' ', '\n', '\r', '\t'].includes? @current
+        @token.line += 1 if @current == '\n'
         next_char
         skip_whitespace
       end
     end
 
-    def read_attr_key
-      key = [] of Char
-      value = ""
-
-      puts "reading attr key"
-      loop do
-        case @current
-        when '='
-          next_char
-          value = read_attr_value
-          break
-        else
-          key << @current
-        end
-
-        next_char
-      end
-
-      {"key" => key.join, "value" => value}
-    end
-
-    def read_attr_value
-      value = [] of Char
-      quotes = @current == '"'
-      escaped = false
-
-      puts "reading attr value"
-      loop do
-        case @current
-        when '"'
-          throw :unexpected unless quotes
-          break unless escaped
-          escaped = false
-        when '\\'
-          throw :unexpected unless quotes
-          escaped = !escaped
-        when ' ', '?', '>'
-          break unless quotes
-        else
-          value << @current
-        end
-
-        next_char
-      end
-      puts "done"
-
-      skip_whitespace
-      value.join
-    end
-
     def read_key
-      is_key = true
-
-      puts "reading key"
       skip_whitespace
+
       loop do
         case @current
         when '\0'
           throw :eof
         when '<'
           case next_char
-          when '?' then @token.type = :head
-          when '/' then @token.type = :el_close
+          when '?'
+            @token.type = :declaration
+            read_declaration
+          when '!'
+            @token.type = :comment
+            read_comment
+            return next_token
+          when '/'
+            @token.type = :el_close
           else
             @token.type = :el_open
+            while @current.ascii_letter?
+              @token.key << @current
+            end
           end
         when '?'
-          break if next_char == '>'
-          throw :unexpected
+          raise "invalid declaration element" unless next_char == '>'
+          next_char
+          return next_token
         when '>'
+          next_char
           break
-        when ' '
-          is_key = false
+        when ' ', .ascii_letter?
+          @token.attributes << read_attribute
         else
-          if is_key
-            @token.key << @current
-          else
-            @token.attributes << read_attr_key
-          end
+          throw :unexpected
         end
-
-        next_char
-      end
-
-      puts "done"
-      if @token.type == :el_open
-        read_value
-      else
-        next_token
-      end
-    end
-
-    def read_value
-      escaped = false
-
-      puts "reading value"
-      loop do
-        case @current
-        when '\0'
-          throw :eof
-        when '\\'
-          escaped = !escaped
-        when '<'
-          break unless escaped
-          escaped = false
-        else
-          @token.value << @current
-        end
-
-        next_char
       end
 
       next_token
+    end
+
+    def read_declaration
+      unless next_char == 'x' && next_char == 'm' && next_char == 'l'
+        throw "invalid declaration element"
+      end
+
+      @token.key += ['x', 'm', 'l']
+    end
+
+    def read_comment
+      if next_char == '-'
+        unless next_char == '-'
+          throw :unexpected
+        end
+      else
+        throw :unexpected
+      end
+
+      next_char
+      loop do
+        if @current == '-'
+          if next_char == '-'
+            if next_char == '>'
+              break
+            else
+              @token.value << @current
+            end
+          else
+            @token.value << @current
+          end
+        else
+          @token.value << @current
+        end
+      end
+    end
+
+    def read_attribute
+      key = [] of Char
+      value = ""
+
+      skip_whitespace
+      until @current == '='
+        key << @current
+        next_char
+      end
+      value = read_string
+
+      {"key" => key.join, "value" => value}
+    end
+
+    def read_value
+      until @current == '<'
+        @token.value << @current
+        next_char
+      end
+    end
+
+    def read_string
+      value = [] of Char
+
+      until @current == '"'
+        value << @current
+        next_char
+      end
+
+      value.join
     end
 
     private def throw(message : String) : NoReturn
