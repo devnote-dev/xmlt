@@ -1,5 +1,5 @@
 name: xmlt
-description: A library for (de)serializing XML
+description: A library for transforming (a.k.a serializing/deserializing) XML
 version: 0.1.0
 
 authors:

@@ -25,8 +25,6 @@ module XMLT
     property current : Char
 
     def initialize(input : String)
-      puts input
-
       @parsed = [] of Token
       @input = input.chars
       @token = Token.new
