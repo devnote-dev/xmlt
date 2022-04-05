@@ -73,7 +73,6 @@ module XMLT
       loop do
         case @current
         when '\0'
-          @token.kind = :eof
           break
         when '<'
           read_key
@@ -84,7 +83,7 @@ module XMLT
         next_char
       end
 
-      next_token unless @token.kind == :eof
+      next_token unless @token.kind == :none
     end
 
     def read_key
@@ -145,6 +144,10 @@ module XMLT
       end
 
       next_char
+      unless @current == '?' || is_whitespace?
+        throw "invalid declaration element"
+      end
+
       loop do
         skip_whitespace
         case @current
