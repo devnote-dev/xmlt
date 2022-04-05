@@ -14,5 +14,5 @@ xml = <<-XML
 </Person>
 XML
 
-tokens = XMLT::Lexer.new(xml).parse
-puts tokens
+tokens = XMLT::Lexer.new(xml).run
+pp tokens

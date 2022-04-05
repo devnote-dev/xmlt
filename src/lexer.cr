@@ -1,113 +1,141 @@
 module XMLT
   struct Token
-    property type       : Symbol
-    property key        : Array(Char)
+    property kind       : Symbol
     property attributes : Array(Hash(String, String))
     property value      : Array(Char)
     property line       : Int32
     property column     : Int32
 
     def initialize
-      @type = :none
-      @key = [] of Char
-      @attributes = Array(Hash(String, String)).new
+      @kind = :none
+      @attributes = [] of Hash(String, String)
       @value = [] of Char
       @line = 1
-      @column = 1
+      @column = 0
     end
   end
 
   class Lexer
-    property parsed   : Array(Token)
     property input    : Array(Char)
     property token    : Token
+    property parsed   : Array(Token)
     property pos      : Int32
+    property line     : Int32
+    property column   : Int32
     property current  : Char
 
     def initialize(input : String)
-      @parsed = [] of Token
       @input = input.chars
       @token = Token.new
+      @parsed = [] of Token
       @pos = 0
+      @line = 1
+      @column = 0
       @current = @input[0]
-
-      next_token
     end
 
-    def parse : Array(Token)
-      next_token
-      @parsed.reject { |t| t.type == :none }
+    def run : Array(Token)
+      read_element
+      @parsed
     end
 
     def next_char : Char
       @pos += 1
-      @token.column += 1
+      @column += 1
       @current = @input[@pos]? || '\0'
       @current
     end
 
-    def next_token : Nil
+    def next_token
+      @token.line = @line
+      @token.column = @column
       @parsed << @token
       @token = Token.new
-      skip_whitespace
 
-      case @current
-      when '\0' then @token.type = :eof
-      when '<'  then read_key
-      when '>'  then read_value
-      else
-        throw :unexpected
-      end
+      read_element
+    end
 
-      @parsed << @token if @token.type == :eof
+    def is_whitespace? : Bool
+      [' ', '\n', '\r', '\t'].includes? @current
     end
 
     def skip_whitespace
-      if [' ', '\n', '\r', '\t'].includes? @current
-        @token.line += 1 if @current == '\n'
+      loop do
+        break unless is_whitespace?
+        @line += 1 if @current == '\n'
         next_char
-        skip_whitespace
       end
     end
 
-    def read_key
+    def read_element
       skip_whitespace
 
       loop do
         case @current
         when '\0'
-          throw :eof
-        when '<'
-          case next_char
-          when '?'
-            @token.type = :declaration
-            read_declaration
-          when '!'
-            @token.type = :comment
-            read_comment
-            return next_token
-          when '/'
-            @token.type = :el_close
-          else
-            @token.type = :el_open
-            while @current.ascii_letter?
-              @token.key << @current
-            end
-          end
-        when '?'
-          raise "invalid declaration element" unless next_char == '>'
-          next_char
-          return next_token
-        when '>'
-          next_char
+          @token.kind = :eof
           break
-        when ' ', .ascii_letter?
-          @token.attributes << read_attribute
+        when '<'
+          read_key
         else
-          throw :unexpected
+          read_value
         end
+
+        next_char
       end
 
+      next_token unless @token.kind == :eof
+    end
+
+    def read_key
+      next_char
+
+      case @current
+      when '?'
+        @token.kind = :declaration
+        read_declaration
+      when '/'
+        @token.kind = :close_tag
+        next_char
+
+        loop do
+          case @current
+          when '>'
+            break
+          when .ascii_letter?, '_'
+            @token.value << @current
+          else
+            throw "unexpected character '#{@current}'"
+          end
+
+          next_char
+        end
+      when '!'
+        @token.kind = :comment
+        read_comment
+      when .ascii_letter?, '_'
+        @token.kind = :open_tag
+        loop do
+          case @current
+          when '>', '\0'
+            break
+          when ' ', '\n', '\r', '\t'
+            skip_whitespace
+            read_attributes
+            break
+          when .ascii_letter?, '_'
+            @token.value << @current
+          else
+            throw "unexpected character '#{@current}'"
+          end
+
+          next_char
+        end
+      else
+        throw "invalid element key character '#{@current}'"
+      end
+
+      next_char
       next_token
     end
 
@@ -116,60 +144,54 @@ module XMLT
         throw "invalid declaration element"
       end
 
-      @token.key += ['x', 'm', 'l']
-    end
-
-    def read_comment
-      if next_char == '-'
-        unless next_char == '-'
-          throw :unexpected
-        end
-      else
-        throw :unexpected
-      end
-
       next_char
       loop do
-        if @current == '-'
-          if next_char == '-'
-            if next_char == '>'
-              break
-            else
-              @token.value << @current
-            end
-          else
-            @token.value << @current
-          end
+        skip_whitespace
+        case @current
+        when '?'
+          throw "invalid declaration element" unless next_char == '>'
+          break
+        when .ascii_letter?
+          read_attributes
+          break
         else
-          @token.value << @current
+          throw "unexpected character '#{@current}'"
         end
       end
     end
 
-    def read_attribute
+    def read_attributes
+      attrs = [] of Hash(String, String)
       key = [] of Char
-      value = ""
 
-      skip_whitespace
-      until @current == '='
-        key << @current
+      loop do
+        skip_whitespace
+        case @current
+        when '?'
+          throw "unexpected character '?'" unless next_char == '>'
+          break
+        when '>'
+          break
+        when '='
+          next_char
+          attrs << {"key" => key.join, "value" => read_string}
+          key.clear
+        when .ascii_letter?, '_'
+          key << @current
+        else
+          throw "unexpected character '#{@current}'"
+        end
+
         next_char
       end
-      value = read_string
 
-      {"key" => key.join, "value" => value}
-    end
-
-    def read_value
-      until @current == '<'
-        @token.value << @current
-        next_char
-      end
+      @token.attributes = attrs
     end
 
     def read_string
       value = [] of Char
 
+      next_char if @current == '"'
       until @current == '"'
         value << @current
         next_char
@@ -178,18 +200,41 @@ module XMLT
       value.join
     end
 
-    private def throw(message : String) : NoReturn
-      raise message + " (line %d, column %d)" % [@token.line, @token.column]
+    def read_value
+      @token.kind = :value
+
+      loop do
+        case @current
+        when '<', '\0'
+          break
+        else
+          @token.value << @current
+        end
+
+        next_char
+      end
+
+      next_token
     end
 
-    private def throw(key : Symbol, extra : String? = nil) : NoReturn
-      errors = {
-        :unexpected => "unexpected character '#{@current}'",
-        :expected => "expected '#{extra}'; got '#{@current}'",
-        :eof => "unexpected EOF"
-      }
+    def read_comment
+      unless next_char == '-' && next_char == '-'
+        throw "invalid comment element"
+      end
 
-      throw errors[key]
+      next_char
+      until @current == '-'
+        @token.value << @current
+        next_char
+      end
+
+      unless next_char == '-' && next_char == '>'
+        throw "invalid comment element"
+      end
+    end
+
+    private def throw(message : String) : NoReturn
+      raise message + " (line #{@line}, column #{@column})"
     end
   end
 end
