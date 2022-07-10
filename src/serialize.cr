@@ -23,7 +23,7 @@ module XMLT
           xml.element({{ @type.id.stringify }}) do
             {% for name, prop in props %}
             case value = {{ name }}
-            when Number, String, Char, Bool
+            when Number, String, Char, Bool, Symbol, Path
               xml.element({{ name.id.stringify }}) { xml.text value.to_s }
             when Nil
               {% if props[:omit_null] %}
@@ -31,7 +31,7 @@ module XMLT
               {% else %}
               xml.element({{ name.id.stringify }}) { }
               {% end %}
-            when Array, Tuple
+            when Array, Tuple, Set
               xml.element({{ name.id.stringify }}) do
                 value.each do |i|
                   xml.element({{ props[:item_key] ? props[:item_key].id.stringify : "item" }}) do
@@ -44,6 +44,10 @@ module XMLT
                 value.each do |k, v|
                   xml.element(k.to_s) { xml.text v.to_s }
                 end
+              end
+            when Time
+              xml.element({{ name.id.stringify }}) do
+                xml.text Time::Format::RFC_3339.format value
               end
             else
               on_serialize_error {{ name.id.stringify }}
