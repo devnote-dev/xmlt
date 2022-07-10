@@ -6,6 +6,7 @@ module XMLT
     def to_xml : String
       {% begin %}
         {% props = {} of Nil => Nil %}
+        {% anno_ops = @type.annotation(Options) %}
         {% for ivar in @type.instance_vars %}
           {% anno_field = ivar.annotation(Field) %}
           {% unless anno_field && anno_field[:ignore] %}
@@ -18,7 +19,7 @@ module XMLT
           {% end %}
         {% end %}
 
-        str = XML.build do |xml|
+        str = XML.build({{ anno_ops[:version] }}, {{ anno_ops[:encoding] }}, {{ anno_ops[:indent] }}) do |xml|
           xml.element({{ @type.id.stringify }}) do
             {% for name, prop in props %}
             case value = {{ name }}
