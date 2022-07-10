@@ -11,7 +11,6 @@ module XMLT
           {% anno_field = ivar.annotation(Field) %}
           {% unless anno_field && anno_field[:ignore] %}
             {% props[ivar.id] = {
-              type:       ivar.type,
               key:        ((anno_field && anno_field[:key]) || ivar).id.stringify,
               item_key:   (anno_field && anno_field[:item_key]),
               omit_null:  (anno_field && anno_field[:omit_null]) || false
@@ -24,33 +23,33 @@ module XMLT
             {% for name, prop in props %}
             case value = {{ name }}
             when Number, String, Char, Bool, Symbol, Path
-              xml.element({{ name.id.stringify }}) { xml.text value.to_s }
+              xml.element({{ prop[:key] }}) { xml.text value.to_s }
             when Nil
-              {% if props[:omit_null] %}
+              {% if prop[:omit_null] %}
               next
               {% else %}
-              xml.element({{ name.id.stringify }}) { }
+              xml.element({{ prop[:key] }}) { }
               {% end %}
             when Array, Tuple, Set
-              xml.element({{ name.id.stringify }}) do
+              xml.element({{ prop[:key] }}) do
                 value.each do |i|
-                  xml.element({{ props[:item_key] ? props[:item_key].id.stringify : "item" }}) do
+                  xml.element({{ (prop[:item_key] && prop[:item_key].id.stringify) || "item" }}) do
                     xml.text i.to_s
                   end
                 end
               end
             when Hash, NamedTuple
-              xml.element({{ name.id.stringify }}) do
+              xml.element({{ prop[:key] }}) do
                 value.each do |k, v|
                   xml.element(k.to_s) { xml.text v.to_s }
                 end
               end
             when Time
-              xml.element({{ name.id.stringify }}) do
+              xml.element({{ prop[:key] }}) do
                 xml.text Time::Format::RFC_3339.format value
               end
             else
-              on_serialize_error {{ name.id.stringify }}
+              on_serialize_error {{ prop[:key] }}
             end
             {% end %}
           end
