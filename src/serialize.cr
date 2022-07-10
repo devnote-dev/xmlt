@@ -38,6 +38,12 @@ module XMLT
                   end
                 end
               end
+            when Hash, NamedTuple
+              xml.element({{ name.id.stringify }}) do
+                value.each do |k, v|
+                  xml.element(k.to_s) { xml.text v.to_s }
+                end
+              end
             else
               on_serialize_error {{ name.id.stringify }}
             end
