@@ -105,7 +105,7 @@ end
 class Hash
   def to_xml(*, indent = nil) : String
     XML.build_fragment(indent: indent) do |xml|
-      each { |k, v| xml.element(k) { xml.text v.to_xml } }
+      each { |k, v| xml.element(k.to_s) { xml.text v.to_xml } }
     end
   end
 end
@@ -113,7 +113,7 @@ end
 struct NamedTuple
   def to_xml(*, indent = nil) : String
     XML.build_fragment(indent: indent) do |xml|
-      each { |k, v| xml.element(k) { xml.text v.to_xml } }
+      each { |k, v| xml.element(k.to_s) { xml.text v.to_xml } }
     end
   end
 end
