@@ -8,6 +8,10 @@ struct Int
       to_s
     end
   end
+
+  def to_xml(xml : XML::Builder) : Nil
+    xml.text to_s
+  end
 end
 
 struct Float
@@ -17,6 +21,10 @@ struct Float
     else
       to_s
     end
+  end
+
+  def to_xml(xml : XML::Builder) : Nil
+    xml.text to_s
   end
 end
 
@@ -38,6 +46,10 @@ struct Bool
       to_s
     end
   end
+
+  def to_xml(xml : XML::Builder) : Nil
+    xml.text to_s
+  end
 end
 
 struct Char
@@ -47,6 +59,10 @@ struct Char
     else
       to_s
     end
+  end
+
+  def to_xml(xml : XML::Builder) : Nil
+    xml.text to_s
   end
 end
 
@@ -58,6 +74,10 @@ struct Symbol
       to_s
     end
   end
+
+  def to_xml(xml : XML::Builder) : Nil
+    xml.text to_s
+  end
 end
 
 struct Path
@@ -68,59 +88,87 @@ struct Path
       @name
     end
   end
+
+  def to_xml(xml : XML::Builder) : Nil
+    xml.text @name
+  end
 end
 
 class Array
   def to_xml(*, key : String = "item", indent = nil) : String
     XML.build_fragment(indent: indent) do |xml|
-      map(&.to_xml).each { |i| xml.element(key) { xml.text i } }
+      each { |i| xml.element(key) { i.to_xml xml } }
     end
+  end
+
+  def to_xml(xml : XML::Builder) : Nil
+    each &.to_xml xml
   end
 end
 
 class Deque
   def to_xml(*, key : String = "item", indent = nil) : String
     XML.build_fragment(indent: indent) do |xml|
-      map(&.to_xml).each { |i| xml.element(key) { xml.text i } }
+      each { |i| xml.element(key) { i.to_xml xml } }
     end
+  end
+
+  def to_xml(xml : XML::Builder) : Nil
+    each &.to_xml xml
   end
 end
 
 struct Tuple
   def to_xml(*, key : String = "item", indent = nil) : String
     XML.build_fragment(indent: indent) do |xml|
-      map(&.to_xml).each { |i| xml.element(key) { xml.text i } }
+      each { |i| xml.element(key) { i.to_xml xml } }
     end
+  end
+
+  def to_xml(xml : XML::Builder) : Nil
+    each &.to_xml xml
   end
 end
 
 struct Set
   def to_xml(*, key : String = "item", indent = nil) : String
     XML.build_fragment(indent: indent) do |xml|
-      map(&.to_xml).each { |i| xml.element(key) { xml.text i } }
+      each { |i| xml.element(key) { i.to_xml xml } }
     end
+  end
+
+  def to_xml(xml : XML::Builder) : Nil
+    each &.to_xml xml
   end
 end
 
 class Hash
   def to_xml(*, indent = nil) : String
-    XML.build_fragment(indent: indent) do |xml|
-      each { |k, v| xml.element(k.to_s) { xml.text v.to_xml } }
-    end
+    XML.build_fragment(indent: indent) { |xml| to_xml xml }
+  end
+
+  def to_xml(xml : XML::Builder) : Nil
+    each { |k, v| xml.element(k.to_s) { v.to_xml xml } }
   end
 end
 
 struct NamedTuple
   def to_xml(*, indent = nil) : String
-    XML.build_fragment(indent: indent) do |xml|
-      each { |k, v| xml.element(k.to_s) { xml.text v.to_xml } }
-    end
+    XML.build_fragment(indent: indent) { |xml| to_xml xml }
+  end
+
+  def to_xml(xml : XML::Builder) : Nil
+    each { |k, v| xml.element(k.to_s) { v.to_xml xml } }
   end
 end
 
 struct Range
-    def to_xml(*, key : String = "item", indent = nil) : String
+  def to_xml(*, key : String = "item", indent = nil) : String
     to_a.to_xml key: key, indent: indent
+  end
+
+  def to_xml(xml : XML::Builder) : Nil
+    to_a.to_xml xml
   end
 end
 
@@ -134,6 +182,11 @@ struct Time
     end
   end
 
+  def to_xml(xml : XML::Builder) : Nil
+    fmt = Time::Format::RFC_3339.format self
+    xml.text fmt
+  end
+
   struct Format
     def to_xml(value : Time, *, key : String? = nil, indent = nil) : String
       fmt = format value
@@ -142,6 +195,10 @@ struct Time
       else
         fmt
       end
+    end
+
+    def to_xml(value : Time, xml : XML::Builder) : Nil
+      format(value).to_xml xml
     end
   end
 end
@@ -153,5 +210,8 @@ struct Nil
     else
       ""
     end
+  end
+
+  def to_xml(xml : XML::Builder) : Nil
   end
 end
