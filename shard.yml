@@ -1,10 +1,12 @@
 name: xmlt
-description: A library for transforming (a.k.a serializing/deserializing) XML
+description: |
+  A library for serializing and deserializing XML documents with classes and structs.
+
 version: 0.1.0
+crystal: ^1.3.2
+repository: https://github.com/devnote-dev/xmlt
 
 authors:
   - Devonte <https://github.com/devnote-dev>
-
-crystal: 1.3.2
 
 license: MIT
