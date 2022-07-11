@@ -31,10 +31,14 @@ end
 class String
   def to_xml(*, key : String? = nil, indent = nil) : String
     if key
-      XML.build_fragment(indent: indent) { |xml| xml.element(key) { xml.text to_s } }
+      XML.build_fragment(indent: indent) { |xml| xml.element(key) { xml.text self } }
     else
-      to_s
+      self
     end
+  end
+
+  def to_xml(xml : XML::Builder) : Nil
+    xml.text self
   end
 end
 
@@ -101,8 +105,8 @@ class Array
     end
   end
 
-  def to_xml(xml : XML::Builder) : Nil
-    each &.to_xml xml
+  def to_xml(xml : XML::Builder, key : String) : Nil
+    each { |i| xml.element(key) { i.to_xml xml } }
   end
 end
 
@@ -113,8 +117,8 @@ class Deque
     end
   end
 
-  def to_xml(xml : XML::Builder) : Nil
-    each &.to_xml xml
+  def to_xml(xml : XML::Builder, key : String) : Nil
+    each { |i| xml.element(key) { i.to_xml xml } }
   end
 end
 
@@ -125,8 +129,8 @@ struct Tuple
     end
   end
 
-  def to_xml(xml : XML::Builder) : Nil
-    each &.to_xml xml
+  def to_xml(xml : XML::Builder, key : String) : Nil
+    each { |i| xml.element(key) { i.to_xml xml } }
   end
 end
 
@@ -137,8 +141,8 @@ struct Set
     end
   end
 
-  def to_xml(xml : XML::Builder) : Nil
-    each &.to_xml xml
+  def to_xml(xml : XML::Builder, key : String) : Nil
+    each { |i| xml.element(key) { i.to_xml xml } }
   end
 end
 
