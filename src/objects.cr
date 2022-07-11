@@ -1,6 +1,7 @@
 require "xml"
 
 struct Int
+  # Returns an XML string representation of the object.
   def to_xml(*, key : String? = nil, indent = nil) : String
     if key
       XML.build_fragment(indent: indent) { |xml| xml.element(key) { xml.text to_s } }
@@ -15,6 +16,7 @@ struct Int
 end
 
 struct Float
+  # Returns an XML string representation of the object.
   def to_xml(*, key : String? = nil, indent = nil) : String
     if key
       XML.build_fragment(indent: indent) { |xml| xml.element(key) { xml.text to_s } }
@@ -29,6 +31,7 @@ struct Float
 end
 
 class String
+  # Returns an XML string representation of the object.
   def to_xml(*, key : String? = nil, indent = nil) : String
     if key
       XML.build_fragment(indent: indent) { |xml| xml.element(key) { xml.text self } }
@@ -43,6 +46,7 @@ class String
 end
 
 struct Bool
+  # Returns an XML string representation of the object.
   def to_xml(*, key : String? = nil, indent = nil) : String
     if key
       XML.build_fragment(indent: indent) { |xml| xml.element(key) { xml.text to_s } }
@@ -57,6 +61,7 @@ struct Bool
 end
 
 struct Char
+  # Returns an XML string representation of the object.
   def to_xml(*, key : String? = nil, indent = nil) : String
     if key
       XML.build_fragment(indent: indent) { |xml| xml.element(key) { xml.text to_s } }
@@ -71,6 +76,7 @@ struct Char
 end
 
 struct Symbol
+  # Returns an XML string representation of the object.
   def to_xml(*, key : String? = nil, indent = nil) : String
     if key
       XML.build_fragment(indent: indent) { |xml| xml.element(key) { xml.text to_s } }
@@ -85,6 +91,7 @@ struct Symbol
 end
 
 struct Path
+  # Returns an XML string representation of the object.
   def to_xml(*, key : String? = nil, indent = nil) : String
     if key
       XML.build_fragment(indent: indent) { |xml| xml.element(key) { xml.text @name } }
@@ -99,6 +106,7 @@ struct Path
 end
 
 class Array
+  # Returns an XML string representation of the object.
   def to_xml(*, key : String = "item", indent = nil) : String
     XML.build_fragment(indent: indent) do |xml|
       each { |i| xml.element(key) { i.to_xml xml } }
@@ -111,6 +119,7 @@ class Array
 end
 
 class Deque
+  # Returns an XML string representation of the object.
   def to_xml(*, key : String = "item", indent = nil) : String
     XML.build_fragment(indent: indent) do |xml|
       each { |i| xml.element(key) { i.to_xml xml } }
@@ -123,6 +132,7 @@ class Deque
 end
 
 struct Tuple
+  # Returns an XML string representation of the object.
   def to_xml(*, key : String = "item", indent = nil) : String
     XML.build_fragment(indent: indent) do |xml|
       each { |i| xml.element(key) { i.to_xml xml } }
@@ -135,6 +145,7 @@ struct Tuple
 end
 
 struct Set
+  # Returns an XML string representation of the object.
   def to_xml(*, key : String = "item", indent = nil) : String
     XML.build_fragment(indent: indent) do |xml|
       each { |i| xml.element(key) { i.to_xml xml } }
@@ -147,6 +158,7 @@ struct Set
 end
 
 struct Enum
+  # Returns an XML string representation of all the members in the enum.
   def self.to_xml(*, key : String? = nil, indent = nil) : String
     if key
       XML.build_fragment(indent: indent) do |xml|
@@ -159,6 +171,7 @@ struct Enum
     end
   end
 
+  # Returns an XML string representation of the object.
   def to_xml(*, indent = nil) : String
     XML.build_fragment(indent: indent) do |xml|
       xml.element(to_s.underscore) { }
@@ -171,6 +184,7 @@ struct Enum
 end
 
 class Hash
+  # Returns an XML string representation of the object.
   def to_xml(*, indent = nil) : String
     XML.build_fragment(indent: indent) { |xml| to_xml xml }
   end
@@ -181,6 +195,7 @@ class Hash
 end
 
 struct NamedTuple
+  # Returns an XML string representation of the object.
   def to_xml(*, indent = nil) : String
     XML.build_fragment(indent: indent) { |xml| to_xml xml }
   end
@@ -191,6 +206,7 @@ struct NamedTuple
 end
 
 struct Range
+  # Returns an XML string representation of the object.
   def to_xml(*, key : String = "item", indent = nil) : String
     to_a.to_xml key: key, indent: indent
   end
@@ -201,6 +217,7 @@ struct Range
 end
 
 struct Time
+  # Returns an XML string representation of the object.
   def to_xml(*, key : String? = nil, indent = nil) : String
     fmt = Time::Format::RFC_3339.format self
     if key
@@ -216,6 +233,7 @@ struct Time
   end
 
   struct Format
+    # Returns an XML string representation of the object.
     def to_xml(value : Time, *, key : String? = nil, indent = nil) : String
       fmt = format value
       if key
@@ -232,6 +250,7 @@ struct Time
 end
 
 struct Nil
+  # Returns an XML string representation of the object.
   def to_xml(key : String? = nil) : String
     if key
       XML.build_fragment { |xml| xml.element(key) { } }
