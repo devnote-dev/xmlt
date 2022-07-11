@@ -13,7 +13,7 @@ module XMLT
             {% props[ivar.id] = {
               key:        ((anno_field && anno_field[:key]) || ivar).id.stringify,
               item_key:   (anno_field && anno_field[:item_key]),
-              omit_null:  (anno_field && anno_field[:omit_null]) || false
+              omit_nil:  (anno_field && anno_field[:omit_nil]) || false
             } %}
           {% end %}
         {% end %}
@@ -23,7 +23,7 @@ module XMLT
             {% for name, prop in props %}
             case value = {{ name }}
             when Nil
-              {% if prop[:omit_null] %}
+              {% unless prop[:omit_nil] %}
               xml.element({{ prop[:key] }}) { }
               {% end %}
             when Array, Deque, Tuple, Set
