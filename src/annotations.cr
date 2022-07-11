@@ -1,4 +1,6 @@
 module XMLT
+  annotation Attributes; end
+
   annotation Field; end
 
   annotation Options; end

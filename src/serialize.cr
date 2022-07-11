@@ -9,11 +9,13 @@ module XMLT
         {% anno_ops = @type.annotation(Options) %}
         {% for ivar in @type.instance_vars %}
           {% anno_field = ivar.annotation(Field) %}
+          {% anno_attrs = ivar.annotation(Attributes) %}
           {% unless anno_field && anno_field[:ignore] %}
             {% props[ivar.id] = {
-              key:        ((anno_field && anno_field[:key]) || ivar).id.stringify,
-              item_key:   (anno_field && anno_field[:item_key]),
-              omit_nil:  (anno_field && anno_field[:omit_nil]) || false
+              key:      ((anno_field && anno_field[:key]) || ivar).id.stringify,
+              item_key: (anno_field && anno_field[:item_key]),
+              omit_nil: (anno_field && anno_field[:omit_nil]) || false,
+              attrs:    (anno_attrs && anno_attrs.named_args)
             } %}
           {% end %}
         {% end %}
@@ -21,15 +23,24 @@ module XMLT
         str = XML.build({{ anno_ops[:version] }}, {{ anno_ops[:encoding] }}, {{ anno_ops[:indent] }}) do |xml|
           xml.element({{ @type.id.stringify }}) do
             {% for name, prop in props %}
+            attrs = {{ prop[:attrs] }}
             case value = {{ name }}
+            when Number, String, Char, Bool, Symbol, Path, Hash, NamedTuple, Range, Time
+              xml.element({{ prop[:key] }}) do
+                value.to_xml xml
+                xml.attributes(attrs) if attrs
+              end
             when Nil
               {% unless prop[:omit_nil] %}
-              xml.element({{ prop[:key] }}) { }
+              xml.element({{ prop[:key] }}) { xml.attributes(attrs) if attrs }
               {% end %}
             when Array, Deque, Tuple, Set
-              xml.element({{ prop[:key] }}) { value.to_xml xml, {{ prop[:item_key] }} }
+              xml.element({{ prop[:key] }}) do
+                value.to_xml xml, {{ prop[:item_key] }}
+                xml.attributes(attrs) if attrs
+              end
             else
-              xml.element({{ prop[:key] }}) { value.to_xml xml }
+              on_serialize_error value
             end
             {% end %}
           end
