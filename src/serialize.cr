@@ -10,12 +10,14 @@ module XMLT
         {% for ivar in @type.instance_vars %}
           {% anno_field = ivar.annotation(Field) %}
           {% anno_attrs = ivar.annotation(Attributes) %}
+          {% anno_cdata = ivar.annotation(CData) %}
           {% unless anno_field && anno_field[:ignore] %}
             {% props[ivar.id] = {
               key:      ((anno_field && anno_field[:key]) || ivar).id.stringify,
               item_key: (anno_field && anno_field[:item_key]),
               omit_nil: (anno_field && anno_field[:omit_nil]) || false,
-              attrs:    (anno_attrs && anno_attrs.named_args)
+              attrs:    (anno_attrs && anno_attrs.named_args),
+              cdata:    !!anno_cdata
             } %}
           {% end %}
         {% end %}
@@ -23,8 +25,13 @@ module XMLT
         str = XML.build({{ anno_ops[:version] }}, {{ anno_ops[:encoding] }}, {{ anno_ops[:indent] }}) do |xml|
           xml.element({{ @type.id.stringify }}) do
             {% for name, prop in props %}
+            value = {{ name }}
             attrs = {{ prop[:attrs] }}
-            case value = {{ name }}
+            {% if prop[:cdata] %}
+            xml.cdata value.to_s
+            xml.attributes(attrs) if attrs
+            {% else %}
+            case value
             when Number, String, Char, Bool, Symbol, Path, Hash, NamedTuple, Range, Time
               xml.element({{ prop[:key] }}) do
                 value.to_xml xml
@@ -42,6 +49,7 @@ module XMLT
             else
               on_serialize_error value
             end
+            {% end %}
             {% end %}
           end
         end
