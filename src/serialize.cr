@@ -6,7 +6,6 @@ module XMLT
     def to_xml : String
       {% begin %}
         {% props = {} of Nil => Nil %}
-        {% anno_ops = @type.annotation(Options) %}
         {% for ivar in @type.instance_vars %}
           {% anno_field = ivar.annotation(Field) %}
           {% anno_attrs = ivar.annotation(Attributes) %}
@@ -22,7 +21,11 @@ module XMLT
           {% end %}
         {% end %}
 
-        str = XML.build({{ anno_ops[:version] }}, {{ anno_ops[:encoding] }}, {{ anno_ops[:indent] }}) do |xml|
+        {% anno_ops = @type.annotation(Options) %}
+        %version = {{ (anno_ops && anno_ops[:version]) || nil }}
+        %encoding = {{ anno_ops && anno_ops[:encoding] || nil }}
+        %indent = {{ anno_ops && anno_ops[:indent] || nil }}
+        str = XML.build(%version, %encoding, %indent) do |xml|
           xml.element({{ @type.id.stringify }}) do
             {% for name, prop in props %}
             value = {{ name }}
@@ -47,7 +50,7 @@ module XMLT
                 xml.attributes(attrs) if attrs
               end
             else
-              on_serialize_error value
+              on_serialize_error value.to_s
             end
             {% end %}
             {% end %}
