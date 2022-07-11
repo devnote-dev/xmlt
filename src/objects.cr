@@ -146,6 +146,30 @@ struct Set
   end
 end
 
+struct Enum
+  def self.to_xml(*, key : String? = nil, indent = nil) : String
+    if key
+      XML.build_fragment(indent: indent) do |xml|
+        names.each { |n| xml.element(key) { xml.text n } }
+      end
+    else
+      XML.build_fragment(indent: indent) do |xml|
+        names.each { |n| xml.element(n) { } }
+      end
+    end
+  end
+
+  def to_xml(*, indent = nil) : String
+    XML.build_fragment(indent: indent) do |xml|
+      xml.element(to_s.underscore) { }
+    end
+  end
+
+  def to_xml(xml : XML::Builder) : Nil
+    xml.text to_s.underscore
+  end
+end
+
 class Hash
   def to_xml(*, indent = nil) : String
     XML.build_fragment(indent: indent) { |xml| to_xml xml }

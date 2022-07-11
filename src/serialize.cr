@@ -35,7 +35,7 @@ module XMLT
             xml.attributes(attrs) if attrs
             {% else %}
             case value
-            when Number, String, Char, Bool, Symbol, Path, Hash, NamedTuple, Range, Time
+            when Number, String, Char, Bool, Symbol, Path, Enum, Hash, NamedTuple, Range, Time
               xml.element({{ prop[:key] }}) do
                 value.to_xml xml
                 xml.attributes(attrs) if attrs
