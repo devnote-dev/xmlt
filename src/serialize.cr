@@ -95,31 +95,31 @@ module XMLT
         str = XML.build(%version, %encoding, %indent) do |xml|
           xml.element({{ @type.id.stringify }}) do
             {% for name, prop in props %}
-            value = {{ name }}
-            attrs = {{ prop[:attrs] }}
-            {% if prop[:cdata] %}
-            xml.cdata value.to_s
-            xml.attributes(attrs) if attrs
-            {% else %}
-            case value
-            when Number, String, Char, Bool, Symbol, Path, Enum, Hash, NamedTuple, Range, Time
-              xml.element({{ prop[:key] }}) do
-                value.to_xml xml
+              value = {{ name }}
+              attrs = {{ prop[:attrs] }}
+              {% if prop[:cdata] %}
+                xml.cdata value.to_s
                 xml.attributes(attrs) if attrs
-              end
-            when Nil
-              {% unless prop[:omit_nil] %}
-              xml.element({{ prop[:key] }}) { xml.attributes(attrs) if attrs }
+              {% else %}
+                case value
+                when Number, String, Char, Bool, Symbol, Path, Enum, Hash, NamedTuple, Range, Time
+                  xml.element({{ prop[:key] }}) do
+                    value.to_xml xml
+                    xml.attributes(attrs) if attrs
+                  end
+                when Nil
+                  {% unless prop[:omit_nil] %}
+                    xml.element({{ prop[:key] }}) { xml.attributes(attrs) if attrs }
+                  {% end %}
+                when Array, Deque, Tuple, Set
+                  xml.element({{ prop[:key] }}) do
+                    value.to_xml xml, {{ prop[:item_key] }}
+                    xml.attributes(attrs) if attrs
+                  end
+                else
+                  on_serialize_error value.to_s
+                end
               {% end %}
-            when Array, Deque, Tuple, Set
-              xml.element({{ prop[:key] }}) do
-                value.to_xml xml, {{ prop[:item_key] }}
-                xml.attributes(attrs) if attrs
-              end
-            else
-              on_serialize_error value.to_s
-            end
-            {% end %}
             {% end %}
           end
         end
@@ -169,25 +169,25 @@ module XMLT
         {% end %}
 
         {% for name, prop in props %}
-        if node = xml.children.find { |n| n.name == {{ prop[:key] }} }
-          begin
-            %var{name} = {{ prop[:type] }}.from_xml node
-          rescue
-            raise "Failed to deserialize '#{{{ name.id.stringify }}}' to type #{{{ prop[:type].id.stringify }}}"
+          if node = xml.children.find { |n| n.name == {{ prop[:key] }} }
+            begin
+              %var{name} = {{ prop[:type] }}.from_xml node
+            rescue
+              raise "Failed to deserialize '#{{{ name.id.stringify }}}' to type #{{{ prop[:type].id.stringify }}}"
+            end
+          elsif {{ prop[:has_default] }}
+            %var{name} = {{ prop[:default] }}
+          else
+            raise "Element '#{{{ prop[:key] }}}' not found"
           end
-        elsif {{ prop[:has_default] }}
-          %var{name} = {{ prop[:default] }}
-        else
-          raise "Element '#{{{ prop[:key] }}}' not found"
-        end
         {% end %}
 
         {% for name, prop in props %}
-        if %var{name}.nil? !{{ prop[:default] }} && !Union({{ prop[:type] }}).nilable?
-          raise "Missing XML element #{{{ prop[:key] }}}"
-        else
-          @{{ name }} = %var{name}
-        end
+          if %var{name}.nil? !{{ prop[:default] }} && !Union({{ prop[:type] }}).nilable?
+            raise "Missing XML element #{{{ prop[:key] }}}"
+          else
+            @{{ name }} = %var{name}
+          end
         {% end %}
       {% end %}
     end
