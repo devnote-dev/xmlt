@@ -42,6 +42,14 @@ struct Float
   def to_xml(xml : XML::Builder) : Nil
     xml.text to_s
   end
+
+  def self.from_xml(value : String)
+    value.to_f
+  end
+
+  def self.from_xml(node : XML::Node)
+    node.content.to_f
+  end
 end
 
 class String
@@ -56,6 +64,14 @@ class String
 
   def to_xml(xml : XML::Builder) : Nil
     xml.text self
+  end
+
+  def self.from_xml(value : String)
+    value
+  end
+
+  def self.from_xml(node : XML::Node)
+    node.content
   end
 end
 
@@ -72,6 +88,18 @@ struct Bool
   def to_xml(xml : XML::Builder) : Nil
     xml.text to_s
   end
+
+  def self.from_xml(value : String)
+    case value
+    when "true"   then true
+    when "false"  then false
+    else          raise "cannot parse value to bool"
+    end
+  end
+
+  def self.from_xml(node : XML::Node)
+    from_xml node.content
+  end
 end
 
 struct Char
@@ -86,6 +114,15 @@ struct Char
 
   def to_xml(xml : XML::Builder) : Nil
     xml.text to_s
+  end
+
+  def self.from_xml(value : String)
+    raise("invalid character sequence") if value.chars.size > 1
+    value.chars[0] || '\0'
+  end
+
+  def self.from_xml(node : XML::Node)
+    from_xml node.content
   end
 end
 
@@ -117,9 +154,17 @@ struct Path
   def to_xml(xml : XML::Builder) : Nil
     xml.text @name
   end
+
+  def self.from_xml(value : String)
+    new value
+  end
+
+  def self.from_xml(node : XML::Node)
+    new node.content
+  end
 end
 
-class Array
+class Array(T)
   # Returns an XML string representation of the object.
   def to_xml(*, key : String = "item", indent = nil) : String
     XML.build_fragment(indent: indent) do |xml|
@@ -130,9 +175,21 @@ class Array
   def to_xml(xml : XML::Builder, key : String) : Nil
     each { |i| xml.element(key) { i.to_xml xml } }
   end
+
+  def self.from_xml(value : String)
+    from_xml XML.parse value
+  end
+
+  def self.from_xml(node : XML::Node)
+    arr = new
+    node.children.each do |node|
+      arr << T.from_xml node
+    end
+    arr
+  end
 end
 
-class Deque
+class Deque(T)
   # Returns an XML string representation of the object.
   def to_xml(*, key : String = "item", indent = nil) : String
     XML.build_fragment(indent: indent) do |xml|
@@ -142,6 +199,14 @@ class Deque
 
   def to_xml(xml : XML::Builder, key : String) : Nil
     each { |i| xml.element(key) { i.to_xml xml } }
+  end
+
+  def self.from_xml(node : XML::Node)
+    deq = new
+    node.children.each do |node|
+      deq << T.from_xml node
+    end
+    deq
   end
 end
 
@@ -195,9 +260,17 @@ struct Enum
   def to_xml(xml : XML::Builder) : Nil
     xml.text to_s.underscore
   end
+
+  def self.from_xml(value : String)
+    from_xml XML.parse value
+  end
+
+  def self.from_xml(node : XML::Node)
+    parse node.children.empty? ? node.name : node.children[0].name
+  end
 end
 
-class Hash
+class Hash(K, V)
   # Returns an XML string representation of the object.
   def to_xml(*, indent = nil) : String
     XML.build_fragment(indent: indent) { |xml| to_xml xml }
@@ -205,6 +278,18 @@ class Hash
 
   def to_xml(xml : XML::Builder) : Nil
     each { |k, v| xml.element(k.to_s) { v.to_xml xml } }
+  end
+
+  def self.from_xml(value : String)
+    from_xml XML.parse value
+  end
+
+  def self.from_xml(node : XML::Node)
+    hash = new
+    node.children.each do |n|
+      hash[n.name] = V.from_xml n
+    end
+    hash
   end
 end
 
@@ -246,6 +331,14 @@ struct Time
     xml.text fmt
   end
 
+  def self.from_xml(value : String)
+    parse XML.parse(value).content
+  end
+
+  def self.from_xml(node : XML::Node)
+    parse node.content
+  end
+
   struct Format
     # Returns an XML string representation of the object.
     def to_xml(value : Time, *, key : String? = nil, indent = nil) : String
@@ -273,6 +366,9 @@ struct Nil
     end
   end
 
-  def to_xml(xml : XML::Builder) : Nil
+  def to_xml(_x) : Nil
+  end
+
+  def self.from_xml(_x)
   end
 end
