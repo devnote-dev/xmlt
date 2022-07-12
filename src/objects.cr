@@ -183,6 +183,7 @@ class Array(T)
   def self.from_xml(node : XML::Node)
     arr = new
     node.children.each do |node|
+      next unless node.content.chars.any? &.alphanumeric?
       arr << T.from_xml node
     end
     arr
@@ -204,6 +205,7 @@ class Deque(T)
   def self.from_xml(node : XML::Node)
     deq = new
     node.children.each do |node|
+      next unless node.content.chars.any? &.alphanumeric?
       deq << T.from_xml node
     end
     deq
@@ -223,7 +225,7 @@ struct Tuple
   end
 end
 
-struct Set
+struct Set(T)
   # Returns an XML string representation of the object.
   def to_xml(*, key : String = "item", indent = nil) : String
     XML.build_fragment(indent: indent) do |xml|
@@ -233,6 +235,19 @@ struct Set
 
   def to_xml(xml : XML::Builder, key : String) : Nil
     each { |i| xml.element(key) { i.to_xml xml } }
+  end
+
+  def self.from_xml(value : String)
+    from_xml XML.parse value
+  end
+
+  def self.from_xml(node : XML::Node)
+    set = new
+    node.children.each do |node|
+      next unless node.content.chars.any? &.alphanumeric?
+      set << T.from_xml node
+    end
+    set
   end
 end
 

@@ -80,7 +80,7 @@ module XMLT
           {% unless anno_field && anno_field[:ignore] %}
             {% props[ivar.id] = {
                 key:      ((anno_field && anno_field[:key]) || ivar).id.stringify,
-                item_key: (anno_field && anno_field[:item_key]),
+                item_key: (anno_field && anno_field[:item_key]) || "item",
                 omit_nil: (anno_field && anno_field[:omit_nil]),
                 attrs:    (anno_attrs && anno_attrs.named_args),
                 cdata:    !!anno_cdata,
