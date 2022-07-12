@@ -212,7 +212,7 @@ class Deque(T)
   end
 end
 
-struct Tuple
+struct Tuple(*T)
   # Returns an XML string representation of the object.
   def to_xml(*, key : String = "item", indent = nil) : String
     XML.build_fragment(indent: indent) do |xml|
@@ -222,6 +222,21 @@ struct Tuple
 
   def to_xml(xml : XML::Builder, key : String) : Nil
     each { |i| xml.element(key) { i.to_xml xml } }
+  end
+
+  def self.from_xml(value : String)
+    from_xml XML.parse value
+  end
+
+  def self.from_xml(node : XML::Node)
+    {% begin %}
+      children = node.children.select { |n| n.content.chars.any? &.alphanumeric? }
+      new(
+        {% for i in 0...T.size %}
+          (self[{{ i }}].from_xml children[{{ i }}]),
+        {% end %}
+      )
+    {% end %}
   end
 end
 
