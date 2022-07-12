@@ -132,49 +132,64 @@ module XMLT
     end
 
     macro included
-      def self.from_xml(xml : String, *, root : String = {{ @type.id.stringify }})
-        {% begin %}
-        node = XML.parse xml
-        nodes : XML::NodeSet
-        child = node.children.find { |n| n.name == root }
-        if node.nil?
-          raise "root element '#{root}' not found in document"
+      def self.new(xml : XML::Node, *, root : String? = nil)
+        root ||= {{ @type.id.stringify }}
+        if node = xml.children.find { |n| n.name == root }
+          from_xml_node node
+        else
+          raise "Root element '#{root}' not found"
         end
-        nodes = child.not_nil!.children
+      end
 
+      private def self.from_xml_node(xml : XML::Node)
+        instance = allocate
+        instance.initialize __xml_deserializable: xml
+        instance
+      end
+
+      macro inherited
+        def self.new(xml : XML::Node)
+          from_xml_node xml
+        end
+      end
+    end
+
+    def initialize(*, __xml_deserializable xml : XML::Node)
+      {% begin %}
         {% props = {} of Nil => Nil %}
         {% for ivar in @type.instance_vars %}
           {% anno_field = ivar.annotation(Field) %}
           {% props[ivar.id] = {
-            type:         ivar.type,
-            key:          ((anno_field && anno_field[:key]) || ivar).id.stringify,
-            has_default:  ivar.has_default_value? || ivar.type.nilable?,
-            default:      ivar.default_value
+            type: ivar.type,
+            key: ((anno_field && anno_field[:key]) || ivar).id.stringify,
+            has_default: ivar.has_default_value? || ivar.type.nilable?,
+            default: ivar.default_value
           } %}
+          %var{props[ivar.id][:key]} = nil
         {% end %}
 
-        __var = {} of String => Nil
         {% for name, prop in props %}
-        if element = nodes.find { |n| n.name == {{ prop[:key] }} }
-          puts element.content
+        if node = xml.children.find { |n| n.name == {{ prop[:key] }} }
           begin
-            __var[{{ name }}] = {{ prop[:type] }}.from_xml element
-          rescue ex
-            raise ex.message
+            %var{name} = {{ prop[:type] }}.from_xml node
+          rescue
+            raise "Failed to deserialize '#{{{ name.id.stringify }}}' to type #{{{ prop[:type].id.stringify }}}"
           end
         elsif {{ prop[:has_default] }}
-          __var[{{ name }}] = {{ prop[:default] }}
+          %var{name} = {{ prop[:default] }}
         else
-          raise "element '#{ {{ name }} }' not found"
+          raise "Element '#{{{ prop[:key] }}}' not found"
         end
         {% end %}
 
-        new
+        {% for name, prop in props %}
+        if %var{name}.nil? !{{ prop[:default] }} && !Union({{ prop[:type] }}).nilable?
+          raise "Missing XML element #{{{ prop[:key] }}}"
+        else
+          @{{ name }} = %var{name}
+        end
         {% end %}
-      end
-    end
-
-    def on_not_found_error(key : String)
+      {% end %}
     end
   end
 end

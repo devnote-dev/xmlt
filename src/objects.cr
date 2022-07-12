@@ -1,5 +1,11 @@
 require "xml"
 
+class Object
+  def self.from_xml(xml : String, *, root : String? = nil)
+    new XML.parse(xml), root: root
+  end
+end
+
 struct Int
   # Returns an XML string representation of the object.
   def to_xml(*, key : String? = nil, indent = nil) : String
