@@ -144,6 +144,7 @@ module XMLT
       private def self.from_xml_node(xml : XML::Node)
         instance = allocate
         instance.initialize __xml_deserializable: xml
+        GC.add_finalizer(instance) if instance.responds_to? :finalize
         instance
       end
 
@@ -178,13 +179,13 @@ module XMLT
           elsif {{ prop[:has_default] }}
             %var{name} = {{ prop[:default] }}
           else
-            raise "Element '#{{{ prop[:key] }}}' not found"
+            raise "Missing XML element '#{{{ prop[:key] }}}'"
           end
         {% end %}
 
         {% for name, prop in props %}
           if %var{name}.nil? !{{ prop[:default] }} && !Union({{ prop[:type] }}).nilable?
-            raise "Missing XML element #{{{ prop[:key] }}}"
+            raise "Missing XML element '#{{{ prop[:key] }}}'"
           else
             @{{ name }} = %var{name}
           end
