@@ -130,5 +130,51 @@ module XMLT
 
     def on_serialize_error(key : String)
     end
+
+    macro included
+      def self.from_xml(xml : String, *, root : String = {{ @type.id.stringify }})
+        {% begin %}
+        node = XML.parse xml
+        nodes : XML::NodeSet
+        child = node.children.find { |n| n.name == root }
+        if node.nil?
+          raise "root element '#{root}' not found in document"
+        end
+        nodes = child.not_nil!.children
+
+        {% props = {} of Nil => Nil %}
+        {% for ivar in @type.instance_vars %}
+          {% anno_field = ivar.annotation(Field) %}
+          {% props[ivar.id] = {
+            type:         ivar.type,
+            key:          ((anno_field && anno_field[:key]) || ivar).id.stringify,
+            has_default:  ivar.has_default_value? || ivar.type.nilable?,
+            default:      ivar.default_value
+          } %}
+        {% end %}
+
+        __var = {} of String => Nil
+        {% for name, prop in props %}
+        if element = nodes.find { |n| n.name == {{ prop[:key] }} }
+          puts element.content
+          begin
+            __var[{{ name }}] = {{ prop[:type] }}.from_xml element
+          rescue ex
+            raise ex.message
+          end
+        elsif {{ prop[:has_default] }}
+          __var[{{ name }}] = {{ prop[:default] }}
+        else
+          raise "element '#{ {{ name }} }' not found"
+        end
+        {% end %}
+
+        new
+        {% end %}
+      end
+    end
+
+    def on_not_found_error(key : String)
+    end
   end
 end

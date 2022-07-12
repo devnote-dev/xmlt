@@ -13,6 +13,14 @@ struct Int
   def to_xml(xml : XML::Builder) : Nil
     xml.text to_s
   end
+
+  def self.from_xml(value : String)
+    value.to_i
+  end
+
+  def self.from_xml(node : XML::Node)
+    node.content.to_i
+  end
 end
 
 struct Float
