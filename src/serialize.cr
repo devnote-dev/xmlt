@@ -79,11 +79,11 @@ module XMLT
           {% anno_cdata = ivar.annotation(CData) %}
           {% unless anno_field && anno_field[:ignore] %}
             {% props[ivar.id] = {
-              key:      ((anno_field && anno_field[:key]) || ivar).id.stringify,
-              item_key: (anno_field && anno_field[:item_key]),
-              omit_nil: (anno_field && anno_field[:omit_nil]),
-              attrs:    (anno_attrs && anno_attrs.named_args),
-              cdata:    !!anno_cdata
+                key:      ((anno_field && anno_field[:key]) || ivar).id.stringify,
+                item_key: (anno_field && anno_field[:item_key]),
+                omit_nil: (anno_field && anno_field[:omit_nil]),
+                attrs:    (anno_attrs && anno_attrs.named_args),
+                cdata:    !!anno_cdata,
             } %}
           {% end %}
         {% end %}
@@ -160,10 +160,10 @@ module XMLT
         {% for ivar in @type.instance_vars %}
           {% anno_field = ivar.annotation(Field) %}
           {% props[ivar.id] = {
-            type: ivar.type,
-            key: ((anno_field && anno_field[:key]) || ivar).id.stringify,
-            has_default: ivar.has_default_value? || ivar.type.nilable?,
-            default: ivar.default_value
+              type:        ivar.type,
+              key:         ((anno_field && anno_field[:key]) || ivar).id.stringify,
+              has_default: ivar.has_default_value? || ivar.type.nilable?,
+              default:     ivar.default_value,
           } %}
           %var{props[ivar.id][:key]} = nil
         {% end %}
