@@ -302,7 +302,7 @@ class Hash(K, V)
   def self.from_xml(node : XML::Node)
     hash = new
     node.children.each do |n|
-      hash[n.name] = V.from_xml n
+      hash[n.name.as?(K) || K.from_xml(n)] = V.from_xml n
     end
     hash
   end
