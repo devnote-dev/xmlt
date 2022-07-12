@@ -300,6 +300,34 @@ struct Enum
   end
 end
 
+struct Union(*T)
+  def initialize(node : XML::Node)
+    {% begin %}
+      if T.includes? Int
+          return Int.from_xml node
+      {% for type in %q(Float String Bool Path Array Deque Tuple Set Enum Nil) %}
+      elsif T.includes? {{ type }}
+        return {{ type }}.from_xml node
+      {% end %}
+      end
+
+      {% primitives = [String, Bool, Nil] + Number::Primitive.union_types %}
+      {% non_primitives = T.reject { |t| primitives.includes? t } %}
+
+      {% if non_primitives.size == 1 %}
+        return {{ non_primitives[0] }}.from_xml node
+      {% else %}
+        {% for type in non_primitives %}
+          value = {{ type }}.try &.to_xml node
+          return value if value
+        {% end %}
+      {% end %}
+
+      raise "Couldn't parse #{self} from element"
+    {% end %}
+  end
+end
+
 class Hash(K, V)
   # Returns an XML string representation of the object.
   def to_xml(*, indent = nil) : String
