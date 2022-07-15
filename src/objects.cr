@@ -359,6 +359,30 @@ struct NamedTuple
   def to_xml(xml : XML::Builder) : Nil
     each { |k, v| xml.element(k.to_s) { v.to_xml xml } }
   end
+
+  def self.from_xml(value : String)
+    from_xml XML.parse value
+  end
+
+  def self.from_xml(node : XML::Node)
+    {% begin %}
+      {% for key, type in T %}
+        if child = node.children.find { |n| n.name == {{ key.id.stringify }} }
+          %var{key.id} = self[{{ key.symbolize }}].from_xml child
+        elsif {{ type }}.nilable?
+          %var{key.id} = nil
+        else
+          raise "Missing XML element '#{{{ key.id.stringify }}}'"
+        end
+      {% end %}
+
+      new(
+        {% for key, type in T %}
+          {{ key.id.stringify }}: %var{key.id}.as({{ type }}),
+        {% end %}
+      )
+    {% end %}
+  end
 end
 
 struct Range(B, E)
@@ -369,6 +393,16 @@ struct Range(B, E)
 
   def to_xml(xml : XML::Builder) : Nil
     to_a.to_xml xml
+  end
+
+  def self.from_xml(value : String)
+    from_xml XML.parse value
+  end
+
+  def self.from_xml(node : XML::Node)
+    b = B.from_xml node.children.first
+    e = E.from_xml node.children.to_a.last
+    new b, e
   end
 end
 
