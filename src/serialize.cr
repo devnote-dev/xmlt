@@ -173,8 +173,8 @@ module XMLT
           if node = xml.children.find { |n| n.name == {{ prop[:key] }} }
             begin
               %var{name} = {{ prop[:type] }}.from_xml node
-            rescue
-              raise "Failed to deserialize '#{{{ name.id.stringify }}}' to type #{{{ prop[:type].id.stringify }}}"
+            rescue ex
+              raise "Failed to deserialize '#{{{ name.id.stringify }}}' to type #{{{ prop[:type].id.stringify }}}\n#{ex}"
             end
           elsif {{ prop[:has_default] }}
             %var{name} = {{ prop[:default] }}
@@ -184,10 +184,10 @@ module XMLT
         {% end %}
 
         {% for name, prop in props %}
-          if %var{name}.nil? !{{ prop[:default] }} && !Union({{ prop[:type] }}).nilable?
+          unless %var{name} || {{ prop[:has_default] }} || Union({{ prop[:type] }}).nilable?
             raise "Missing XML element '#{{{ prop[:key] }}}'"
           else
-            @{{ name }} = %var{name}
+            @{{ name }} = %var{name}.not_nil!
           end
         {% end %}
       {% end %}
