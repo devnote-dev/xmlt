@@ -187,7 +187,7 @@ module XMLT
           unless %var{name} || {{ prop[:has_default] }} || Union({{ prop[:type] }}).nilable?
             raise "Missing XML element '#{{{ prop[:key] }}}'"
           else
-            @{{ name }} = %var{name}.not_nil!
+            @{{ name }} = %var{name}.as({{ prop[:type] }})
           end
         {% end %}
       {% end %}

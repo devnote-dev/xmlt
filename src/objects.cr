@@ -299,9 +299,9 @@ end
 struct Union(*T)
   def self.from_xml(node : XML::Node)
     {% begin %}
-      if T.types.includes? Int
-        return Int.from_xml node
-      {% for type in %w(Float String Bool Nil) %}
+      if T.types.includes? Nil
+        return nil
+      {% for type in %w(Int Float String Bool Nil) %}
       elsif T.types.includes? {{ type.id }}
         return {{ type.id }}.from_xml node
       {% end %}
