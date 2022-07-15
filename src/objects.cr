@@ -2,7 +2,7 @@ require "xml"
 
 class Object
   def self.from_xml(xml : String, *, root : String? = nil)
-    new XML.parse(xml), root: root
+    new XML.parse(xml, XML::ParserOptions::NOBLANKS), root: root
   end
 end
 
@@ -183,7 +183,6 @@ class Array(T)
   def self.from_xml(node : XML::Node)
     arr = new
     node.children.each do |node|
-      next unless node.content.chars.any? &.alphanumeric?
       arr << T.from_xml node
     end
     arr
@@ -205,7 +204,6 @@ class Deque(T)
   def self.from_xml(node : XML::Node)
     deq = new
     node.children.each do |node|
-      next unless node.content.chars.any? &.alphanumeric?
       deq << T.from_xml node
     end
     deq
@@ -230,10 +228,9 @@ struct Tuple(*T)
 
   def self.from_xml(node : XML::Node)
     {% begin %}
-      children = node.children.select { |n| n.content.chars.any? &.alphanumeric? }
       new(
         {% for i in 0...T.size %}
-          (self[{{ i }}].from_xml children[{{ i }}]),
+          (self[{{ i }}].from_xml node.children[{{ i }}]),
         {% end %}
       )
     {% end %}
@@ -259,7 +256,6 @@ struct Set(T)
   def self.from_xml(node : XML::Node)
     set = new
     node.children.each do |node|
-      next unless node.content.chars.any? &.alphanumeric?
       set << T.from_xml node
     end
     set
@@ -304,7 +300,7 @@ struct Union(*T)
   def initialize(node : XML::Node)
     {% begin %}
       if T.includes? Int
-          return Int.from_xml node
+        return Int.from_xml node
       {% for type in %q(Float String Bool Path Array Deque Tuple Set Enum Nil) %}
       elsif T.includes? {{ type }}
         return {{ type }}.from_xml node
@@ -362,7 +358,7 @@ struct NamedTuple
   end
 end
 
-struct Range
+struct Range(B, E)
   # Returns an XML string representation of the object.
   def to_xml(*, key : String = "item", indent = nil) : String
     to_a.to_xml key: key, indent: indent
