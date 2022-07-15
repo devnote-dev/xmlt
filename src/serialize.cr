@@ -27,18 +27,18 @@ module XMLT
   # end
   #
   # xml = <<-XML
-  #   <House>
+  #   <Place>
   #     <address>Crystal Palace</address>
   #     <location>
   #       <long>51.4221</long>
   #       <lat>0.0709</lat>
   #     </location>
-  #   </House>
+  #   </Place>
   # XML
   #
-  # house = House.from_xml xml, root: "House"
-  # pp house # =>
-  # # House(
+  # place = Place.from_xml xml, root: "Place"
+  # pp place # =>
+  # # Place(
   # #   @address="Crystal Palace",
   # #   @location=Location(
   # #     @latitude=0.0709,
@@ -46,14 +46,14 @@ module XMLT
   # #   )
   # # )
   #
-  # puts house.to_xml # =>
-  # # <House>
+  # puts place.to_xml # =>
+  # # <Place>
   # #   <address>Crystal Palace</address>
   # #   <location>
   # #     <long>51.4221</long>
   # #     <lat>0.0709</lat>
   # #   </location>
-  # # </House>
+  # # </Place>
   # ```
   #
   # ### Usage
@@ -155,6 +155,7 @@ module XMLT
       end
     end
 
+    # Creates a new instance of the class or struct from an XML node.
     def initialize(*, __xml_deserializable xml : XML::Node)
       {% begin %}
         {% props = {} of Nil => Nil %}
