@@ -301,7 +301,7 @@ struct Union(*T)
     {% begin %}
       if T.types.includes? Nil
         return nil
-      {% for type in %w(Int Float String Bool Nil) %}
+      {% for type in %w(Int Float String Bool) %}
       elsif T.types.includes? {{ type.id }}
         return {{ type.id }}.from_xml node
       {% end %}
