@@ -297,13 +297,13 @@ struct Enum
 end
 
 struct Union(*T)
-  def initialize(node : XML::Node)
+  def self.from_xml(node : XML::Node)
     {% begin %}
-      if T.includes? Int
+      if T.types.includes? Int
         return Int.from_xml node
-      {% for type in %q(Float String Bool Path Array Deque Tuple Set Enum Nil) %}
-      elsif T.includes? {{ type }}
-        return {{ type }}.from_xml node
+      {% for type in %w(Float String Bool Nil) %}
+      elsif T.types.includes? {{ type.id }}
+        return {{ type.id }}.from_xml node
       {% end %}
       end
 
@@ -314,8 +314,11 @@ struct Union(*T)
         return {{ non_primitives[0] }}.from_xml node
       {% else %}
         {% for type in non_primitives %}
-          value = {{ type }}.try &.to_xml node
-          return value if value
+          begin
+            value = {{ type.id }}.to_xml node
+            return value if value
+          rescue
+          end
         {% end %}
       {% end %}
 
@@ -372,7 +375,7 @@ end
 struct Time
   # Returns an XML string representation of the object.
   def to_xml(*, key : String? = nil, indent = nil) : String
-    fmt = Time::Format::RFC_3339.format self
+    fmt = Format::RFC_3339.format self
     if key
       XML.build_fragment(indent: indent) { |xml| xml.element(key) { xml.text fmt } }
     else
@@ -381,16 +384,16 @@ struct Time
   end
 
   def to_xml(xml : XML::Builder) : Nil
-    fmt = Time::Format::RFC_3339.format self
+    fmt = Format::RFC_3339.format self
     xml.text fmt
   end
 
   def self.from_xml(value : String)
-    parse XML.parse(value).content
+    Format::RFC_3339.parse value
   end
 
   def self.from_xml(node : XML::Node)
-    parse node.content
+    Format::RFC_3339.parse node.content
   end
 
   struct Format
