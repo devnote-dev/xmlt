@@ -1,8 +1,17 @@
 require "xml"
 
 class Object
+  private def parse_xml(value : String) : XML::Node
+    node = XML.parse value, XML::ParserOptions::NOBLANKS
+    if child = node.first_element_child
+      return child
+    else
+      raise "Failed to parse XML from value"
+    end
+  end
+
   def self.from_xml(xml : String, *, root : String? = nil)
-    new XML.parse(xml, XML::ParserOptions::NOBLANKS), root: root
+    new parse_xml(xml), root: root
   end
 end
 
@@ -21,7 +30,7 @@ struct Int
   end
 
   def self.from_xml(value : String)
-    value.to_i
+    from_xml parse_xml value
   end
 
   def self.from_xml(node : XML::Node)
@@ -44,7 +53,7 @@ struct Float
   end
 
   def self.from_xml(value : String)
-    value.to_f
+    from_xml parse_xml value
   end
 
   def self.from_xml(node : XML::Node)
@@ -67,7 +76,7 @@ class String
   end
 
   def self.from_xml(value : String)
-    value
+    from_xml parse_xml value
   end
 
   def self.from_xml(node : XML::Node)
@@ -90,15 +99,15 @@ struct Bool
   end
 
   def self.from_xml(value : String)
-    case value
+    from_xml parse_xml value
+  end
+
+  def self.from_xml(node : XML::Node)
+    case node.content
     when "true"   then true
     when "false"  then false
     else          raise "cannot parse value to bool"
     end
-  end
-
-  def self.from_xml(node : XML::Node)
-    from_xml node.content
   end
 end
 
@@ -117,12 +126,12 @@ struct Char
   end
 
   def self.from_xml(value : String)
-    raise("invalid character sequence") if value.chars.size > 1
-    value.chars[0] || '\0'
+    from_xml parse_xml value
   end
 
   def self.from_xml(node : XML::Node)
-    from_xml node.content
+    raise("invalid character sequence") if node.content.chars.size > 1
+    node.content.chars[0] || '\0'
   end
 end
 
@@ -156,7 +165,7 @@ struct Path
   end
 
   def self.from_xml(value : String)
-    new value
+    from_xml parse_xml value
   end
 
   def self.from_xml(node : XML::Node)
@@ -177,13 +186,13 @@ class Array(T)
   end
 
   def self.from_xml(value : String)
-    from_xml XML.parse value
+    from_xml parse_xml value
   end
 
   def self.from_xml(node : XML::Node)
     arr = new
-    node.children.each do |node|
-      arr << T.from_xml node
+    node.children.each do |child|
+      arr << T.from_xml child
     end
     arr
   end
@@ -201,10 +210,14 @@ class Deque(T)
     each { |i| xml.element(key) { i.to_xml xml } }
   end
 
+  def self.from_xml(value : String)
+    from_xml parse_xml value
+  end
+
   def self.from_xml(node : XML::Node)
     deq = new
-    node.children.each do |node|
-      deq << T.from_xml node
+    node.children.each do |child|
+      deq << T.from_xml child
     end
     deq
   end
@@ -223,7 +236,7 @@ struct Tuple(*T)
   end
 
   def self.from_xml(value : String)
-    from_xml XML.parse value
+    from_xml parse_xml value
   end
 
   def self.from_xml(node : XML::Node)
@@ -250,13 +263,13 @@ struct Set(T)
   end
 
   def self.from_xml(value : String)
-    from_xml XML.parse value
+    from_xml parse_xml value
   end
 
   def self.from_xml(node : XML::Node)
     set = new
-    node.children.each do |node|
-      set << T.from_xml node
+    node.children.each do |child|
+      set << T.from_xml child
     end
     set
   end
@@ -288,7 +301,7 @@ struct Enum
   end
 
   def self.from_xml(value : String)
-    from_xml XML.parse value
+    from_xml parse_xml value
   end
 
   def self.from_xml(node : XML::Node)
@@ -338,13 +351,13 @@ class Hash(K, V)
   end
 
   def self.from_xml(value : String)
-    from_xml XML.parse value
+    from_xml parse_xml value
   end
 
   def self.from_xml(node : XML::Node)
     hash = new
-    node.children.each do |n|
-      hash[n.name.as?(K) || K.from_xml(n)] = V.from_xml n
+    node.children.each do |child|
+      hash[child.name.as?(K) || K.from_xml(child)] = V.from_xml child
     end
     hash
   end
@@ -361,7 +374,7 @@ struct NamedTuple
   end
 
   def self.from_xml(value : String)
-    from_xml XML.parse value
+    from_xml parse_xml value
   end
 
   def self.from_xml(node : XML::Node)
@@ -396,7 +409,7 @@ struct Range(B, E)
   end
 
   def self.from_xml(value : String)
-    from_xml XML.parse value
+    from_xml parse_xml value
   end
 
   def self.from_xml(node : XML::Node)
@@ -423,7 +436,7 @@ struct Time
   end
 
   def self.from_xml(value : String)
-    Format::RFC_3339.parse value
+    from_xml parse_xml value
   end
 
   def self.from_xml(node : XML::Node)
