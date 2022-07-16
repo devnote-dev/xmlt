@@ -7,7 +7,7 @@ enum Colors
   Blue
 end
 
-describe "Object (de)serialization" do
+describe "Object serialization" do
   describe "to_xml" do
     it "serializes Int32" do
       123.to_xml.should eq "123"
