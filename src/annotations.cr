@@ -56,6 +56,10 @@ module XMLT
   #
   # **ignore**: ignore the field when serializing and deserializing (default is false).
   #
+  # **ignore_serialize**: ignore the field when serializing.
+  #
+  # **ignore_deserialize**: ignore the field when deserializing.
+  #
   # **omit_nil**: ignore serializing the property if it is nil (default is false).
   annotation Field; end
 

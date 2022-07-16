@@ -77,7 +77,7 @@ module XMLT
           {% anno_field = ivar.annotation(Field) %}
           {% anno_attrs = ivar.annotation(Attributes) %}
           {% anno_cdata = ivar.annotation(CData) %}
-          {% unless anno_field && anno_field[:ignore] %}
+          {% unless anno_field && (anno_field[:ignore] || anno_field[:ignore_serialize]) %}
             {% props[ivar.id] = {
                 key:      ((anno_field && anno_field[:key]) || ivar).id.stringify,
                 item_key: (anno_field && anno_field[:item_key]) || "item",
@@ -161,13 +161,15 @@ module XMLT
         {% props = {} of Nil => Nil %}
         {% for ivar in @type.instance_vars %}
           {% anno_field = ivar.annotation(Field) %}
-          {% props[ivar.id] = {
-              type:        ivar.type,
-              key:         ((anno_field && anno_field[:key]) || ivar).id.stringify,
-              has_default: ivar.has_default_value? || ivar.type.nilable?,
-              default:     ivar.default_value,
-          } %}
-          %var{props[ivar.id][:key]} = nil
+          {% unless anno_field && (anno_field[:ignore] || anno_field[:ignore_deserialize]) %}
+            {% props[ivar.id] = {
+                type:        ivar.type,
+                key:         ((anno_field && anno_field[:key]) || ivar).id.stringify,
+                has_default: ivar.has_default_value? || ivar.type.nilable?,
+                default:     ivar.default_value,
+            } %}
+            %var{props[ivar.id][:key]} = nil
+          {% end %}
         {% end %}
 
         {% for name, prop in props %}
