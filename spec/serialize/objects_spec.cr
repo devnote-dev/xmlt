@@ -1,6 +1,6 @@
 require "../spec_helper"
 
-enum Colors
+private enum Colors
   Red
   Yellow
   Green
