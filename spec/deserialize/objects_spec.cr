@@ -49,5 +49,30 @@ describe "Object deserialization" do
     it "deserializes to Set(Float32)" do
       Set(Float64).from_xml("<set><item>0.12</item><item>34.5</item><item>678.9</item></set>").should eq Set{0.12, 34.5, 678.9}
     end
+
+    it "deserializes to an Enum" do
+      Colors.from_xml("<col><Green/></col>").should eq Colors::Green
+      Colors.from_xml("<col><yellow></yellow></col>").should eq Colors::Yellow
+    end
+
+    it "deserializes to Hash(String, Int32)" do
+      Hash(String, Int32).from_xml("<hash><foo>123</foo><bar>456</bar><baz>789</baz></hash>").should eq({"foo" => 123, "bar" => 456, "baz" => 789})
+    end
+
+    it "deserializes to NamedTuple(foo: String, baz: Int32)" do
+      NamedTuple(foo: String, baz: Int32).from_xml("<ntup><foo>bar</foo><baz>123</baz></ntup>").should eq({foo: "bar", baz: 123})
+    end
+
+    it "deserializes to Range(Int32, Int32)" do
+      Range(Int32, Int32).from_xml("<rng><item>1</item><item>2</item><item>3</item><item>4</item><item>5</item></rng>").should eq 1..5
+    end
+
+    it "deserializes to Time" do
+      Time.from_xml("<time>2022-07-16T02:20:40Z</time>").should eq Time.utc(2022, 7, 16, 2, 20, 40)
+    end
+
+    it "deserializes to Nil" do
+      Nil.from_xml("").should eq nil
+    end
   end
 end
