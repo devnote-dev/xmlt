@@ -279,12 +279,12 @@ struct Enum
   # Returns an XML string representation of the object.
   def to_xml(*, indent = nil) : String
     XML.build_fragment(indent: indent) do |xml|
-      xml.element(to_s.underscore) { }
+      xml.element(to_s) { }
     end
   end
 
   def to_xml(xml : XML::Builder) : Nil
-    xml.text to_s.underscore
+    xml.element(to_s) { }
   end
 
   def self.from_xml(value : String)
