@@ -134,7 +134,9 @@ module XMLT
     macro included
       def self.new(xml : XML::Node, *, root : String? = nil)
         root ||= {{ @type.id.stringify }}
-        if node = xml.children.find { |n| n.name == root }
+        if xml.name == root
+          from_xml_node xml
+        elsif node = xml.children.find { |n| n.name == root }
           from_xml_node node
         else
           raise "Root element '#{root}' not found"

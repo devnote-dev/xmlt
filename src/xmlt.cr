@@ -1,6 +1,6 @@
 require "./annotations"
 require "./objects"
-require "./serialize"
+require "./serializable"
 
 # A library for serializing and deserializing XML documents with classes and structs.
 # This follows the same includable syntax used in the standard library's JSON and YAML modules.
