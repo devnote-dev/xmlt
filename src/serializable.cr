@@ -134,6 +134,7 @@ module XMLT
     macro included
       def self.new(xml : XML::Node, *, root : String? = nil)
         root ||= {{ @type.id.stringify }}
+        puts xml.name + " - " + root
         if xml.name == root
           from_xml_node xml
         elsif node = xml.children.find { |n| n.name == root }
@@ -179,7 +180,7 @@ module XMLT
             begin
               %var{name} = {{ prop[:type] }}.from_xml node
             rescue ex
-              raise "Failed to deserialize '#{{{ name.id.stringify }}}' to type #{{{ prop[:type].id.stringify }}}\n#{ex}"
+              raise "Failed to deserialize '#{{{ name.id.stringify }}}' to type #{{{ prop[:type].id.stringify }}}:\n#{ex}"
             end
           elsif {{ prop[:has_default] }}
             %var{name} = {{ prop[:default] }}

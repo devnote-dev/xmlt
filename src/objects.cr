@@ -4,7 +4,7 @@ class Object
   private def parse_xml(value : String) : XML::Node
     node = XML.parse value, XML::ParserOptions::NOBLANKS
     if child = node.first_element_child
-      return child
+      child
     else
       raise "Failed to parse XML from value"
     end
@@ -12,6 +12,10 @@ class Object
 
   def self.from_xml(xml : String, *, root : String? = nil)
     new parse_xml(xml), root: root
+  end
+
+  def self.from_xml(node : XML::Node, *, root : String? = nil)
+    new node, root: root
   end
 end
 
