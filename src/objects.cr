@@ -1,4 +1,5 @@
 require "xml"
+require "./errors"
 
 class Object
   private def parse_xml(value : String) : XML::Node
@@ -6,7 +7,7 @@ class Object
     if child = node.first_element_child
       child
     else
-      raise "Failed to parse XML from value"
+      raise SerializableError.new "Failed to parse XML from value"
     end
   end
 
@@ -151,6 +152,10 @@ struct Symbol
 
   def to_xml(xml : XML::Builder) : Nil
     xml.text to_s
+  end
+
+  def self.from_xml(_x)
+    raise SerializableError.new "Cannot deserialize to a Symbol"
   end
 end
 

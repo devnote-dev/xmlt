@@ -187,7 +187,6 @@ module XMLT
                 %var{name} = {{ prop[:type] }}.from_xml node
               {% end %}
             rescue ex
-              raise "Failed to deserialize '#{{{ name.id.stringify }}}' to type #{{{ prop[:type].id.stringify }}}:\n#{ex}"
               raise SerializableError.new ex, {{ name.id.stringify }}, {{ prop[:type].id.stringify }}
             end
           elsif {{ prop[:has_default] }}
