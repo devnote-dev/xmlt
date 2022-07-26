@@ -17,6 +17,7 @@ struct Place
   include XMLT::Serializable
 
   property name : String
+  @[XMLT::Field(new_root: true)]
   property location : Location
   @[XMLT::Field(ignore_serialize: true)]
   property country : String?

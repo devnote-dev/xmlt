@@ -61,6 +61,10 @@ module XMLT
   # **ignore_deserialize**: ignore the field when deserializing.
   #
   # **omit_nil**: ignore serializing the property if it is nil (default is false).
+  #
+  # **new_root**: overrides the default root element to deserialize from. This is
+  # required if you are serializing a class or struct within another as the root
+  # element becomes ambiguous to the deserializer.
   annotation Field; end
 
   # Defines the XML document options and indent option for the serializer.
