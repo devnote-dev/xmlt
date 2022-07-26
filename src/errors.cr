@@ -4,6 +4,6 @@ class SerializableError < Exception
   end
 
   def initialize(err : Exception, name : String, type : String)
-    super "Failed to deserialize '#{name}' to #{type}:\n#{ex}"
+    super "Failed to deserialize '#{name}' to #{type}:\n#{err}"
   end
 end
