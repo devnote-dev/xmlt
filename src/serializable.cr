@@ -75,9 +75,9 @@ module XMLT
         {% props = {} of Nil => Nil %}
         {% for ivar in @type.instance_vars %}
           {% anno_field = ivar.annotation(Field) %}
-          {% anno_attrs = ivar.annotation(Attributes) %}
-          {% anno_cdata = ivar.annotation(CData) %}
           {% unless anno_field && (anno_field[:ignore] || anno_field[:ignore_serialize]) %}
+            {% anno_attrs = ivar.annotation(Attributes) %}
+            {% anno_cdata = ivar.annotation(CData) %}
             {% props[ivar.id] = {
                 key:      ((anno_field && anno_field[:key]) || ivar).id.stringify,
                 item_key: (anno_field && anno_field[:item_key]) || "item",
@@ -98,8 +98,10 @@ module XMLT
               value = {{ name }}
               attrs = {{ prop[:attrs] }}
               {% if prop[:cdata] %}
-                xml.cdata value.to_s
-                xml.attributes(attrs) if attrs
+                xml.element({{ prop[:key] }}) do
+                  xml.cdata value.to_s
+                  xml.attributes(attrs) if attrs
+                end
               {% else %}
                 case value
                 when Number, String, Char, Bool, Symbol, Path, Enum, Hash, NamedTuple, Range, Time
