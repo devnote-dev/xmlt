@@ -120,7 +120,7 @@ module XMLT
                     xml.attributes(attrs) if attrs
                   end
                 else
-                  on_serialize_error value.to_s
+                  value.try &.to_xml xml
                 end
               {% end %}
             {% end %}
@@ -129,9 +129,6 @@ module XMLT
 
         str
       {% end %}
-    end
-
-    def on_serialize_error(key : String)
     end
 
     macro included
