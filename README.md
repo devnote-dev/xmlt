@@ -58,4 +58,6 @@ fox.to_xml # => <Animal><species>mammal</species><family>dog</family></Animal>
 ## Contributors
 - [Devonte](https://github.com/devnote-dev) - creator and maintainer
 
-© 2022 devnote-dev (LICENSE: [MIT](./LICENSE))
+This repository is managed under the MIT license.
+
+© 2022 devnote-dev

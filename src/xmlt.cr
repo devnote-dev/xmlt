@@ -40,5 +40,5 @@ require "./serializable"
 # fox.family = "dog"
 # fox.to_xml # => <Animal><species>mammal</species><family>dog</family></Animal>
 module XMLT
-  VERSION = "0.1.0"
+  VERSION = "0.2.0"
 end
