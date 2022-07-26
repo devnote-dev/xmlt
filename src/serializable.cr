@@ -1,5 +1,6 @@
 require "xml"
 require "./annotations"
+require "./errors"
 
 module XMLT
   # The `XMLT::Serializable` module generates methods for serializing and deserializing
@@ -141,7 +142,7 @@ module XMLT
         elsif node = xml.children.find { |n| n.name == root }
           from_xml_node node
         else
-          raise "Root element '#{root}' not found"
+          raise SerializableError.new "Root element '#{root}' not found"
         end
       end
 
@@ -187,17 +188,18 @@ module XMLT
               {% end %}
             rescue ex
               raise "Failed to deserialize '#{{{ name.id.stringify }}}' to type #{{{ prop[:type].id.stringify }}}:\n#{ex}"
+              raise SerializableError.new ex, {{ name.id.stringify }}, {{ prop[:type].id.stringify }}
             end
           elsif {{ prop[:has_default] }}
             %var{name} = {{ prop[:default] }}
           else
-            raise "Missing XML element '#{{{ prop[:key] }}}'"
+            raise SerializableError.new "Missing XML element '#{{{ prop[:key] }}}'"
           end
         {% end %}
 
         {% for name, prop in props %}
           unless %var{name} || {{ prop[:has_default] }} || Union({{ prop[:type] }}).nilable?
-            raise "Missing XML element '#{{{ prop[:key] }}}'"
+            raise SerializableError.new "Missing XML element '#{{{ prop[:key] }}}'"
           else
             @{{ name }} = %var{name}.as({{ prop[:type] }})
           end
