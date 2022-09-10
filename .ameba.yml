@@ -1,0 +1,3 @@
+Globs:
+  - src/**/*.cr
+  - spec/**/*.cr

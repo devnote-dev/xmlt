@@ -180,7 +180,7 @@ module XMLT
             begin
               {% if prop[:new_root] %}
                 %var{name} = {{ prop[:type] }}.from_xml node, root: {{ prop[:key] }}
-              {% else %} 
+              {% else %}
                 %var{name} = {{ prop[:type] }}.from_xml node
               {% end %}
             rescue ex
