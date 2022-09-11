@@ -1,3 +1,6 @@
 Globs:
   - src/**/*.cr
   - spec/**/*.cr
+
+Layout/TrailingWhitespace:
+  Enabled: false

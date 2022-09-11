@@ -1,28 +1,69 @@
-require "xml"
-require "./errors"
+alias IndentOptions = String | Int32 | Bool | Nil
 
 class Object
-  private def parse_xml(value : String) : XML::Node
-    node = XML.parse value, XML::ParserOptions::NOBLANKS
+  def to_xml(*, indent : IndentOptions = nil) : String
+    String.build do |str|
+      to_xml str
+    end
+  end
+
+  def to_xml(io : IO, *, indent : IndentOptions = nil) : Nil
+    to_xml io
+  end
+
+  private def self.parse_xml(xml : String) : XML::Node
+    node = XML.parse xml, XML::ParserOptions::NOBLANKS
     if child = node.first_element_child
       child
     else
-      raise SerializableError.new "Failed to parse XML from value"
+      raise "failed to parse XML from string value"
     end
   end
 
-  def self.from_xml(xml : String, *, root : String? = nil)
-    new parse_xml(xml), root: root
+    def self.from_xml(node : XML::Node)
+    new node
   end
 
-  def self.from_xml(node : XML::Node, *, root : String? = nil)
+  def self.from_xml(xml : String)
+    from_xml parse_xml xml
+  end
+
+  def self.from_xml(node : XML::Node, *, root : String)
     new node, root: root
   end
+
+  def self.from_xml(xml : String, *, root : String)
+    from_xml parse_xml(xml), root: root
+  end
 end
 
-struct Int
-  # Returns an XML string representation of the object.
-  def to_xml(*, key : String? = nil, indent = nil) : String
+struct Nil
+  def to_xml(*, key : String? = nil, indent : IndentOptions = nil) : String
+    if key
+      XML.build_fragment(indent: indent) { |xml| xml.element(key) { } }
+    else
+      ""
+    end
+  end
+
+  def to_xml(io : IO, *, key : String? = nil, indent : IndentOptions = nil) : Nil
+    io << to_xml key: key, indent: indent
+  end
+
+  def to_xml(xml : XML::Builder) : Nil
+  end
+
+  def self.new(xml : XML::Node)
+  end
+end
+
+{% for base in %w(8 16 32 64 128) %}
+struct Int{{ base.id }}
+  def self.new(node : XML::Node)
+    node.content.to_i{{ base.id }}
+  end
+
+  def to_xml(*, key : String? = nil, indent : IndentOptions = nil) : String
     if key
       XML.build_fragment(indent: indent) { |xml| xml.element(key) { xml.text to_s } }
     else
@@ -30,22 +71,23 @@ struct Int
     end
   end
 
+  def to_xml(io : IO, *, key : String? = nil, indent : IndentOptions = nil) : Nil
+    io << to_xml key: key, indent: indent
+  end
+
   def to_xml(xml : XML::Builder) : Nil
     xml.text to_s
   end
-
-  def self.from_xml(value : String)
-    from_xml parse_xml value
-  end
-
-  def self.from_xml(node : XML::Node)
-    node.content.to_i
-  end
 end
+{% end %}
 
-struct Float
-  # Returns an XML string representation of the object.
-  def to_xml(*, key : String? = nil, indent = nil) : String
+{% for base in %w(32 64) %}
+struct Float{{ base.id }}
+  def self.new(node : XML::Node)
+    node.content.to_f{{ base.id }}
+  end
+
+  def to_xml(*, key : String? = nil, indent : IndentOptions = nil) : String
     if key
       XML.build_fragment(indent: indent) { |xml| xml.element(key) { xml.text to_s } }
     else
@@ -53,45 +95,44 @@ struct Float
     end
   end
 
+  def to_xml(io : IO, *, key : String? = nil, indent : IndentOptions = nil) : Nil
+    io << to_xml key: key, indent: indent
+  end
+
   def to_xml(xml : XML::Builder) : Nil
     xml.text to_s
   end
-
-  def self.from_xml(value : String)
-    from_xml parse_xml value
-  end
-
-  def self.from_xml(node : XML::Node)
-    node.content.to_f
-  end
 end
+{% end %}
 
 class String
-  # Returns an XML string representation of the object.
-  def to_xml(*, key : String? = nil, indent = nil) : String
+  def self.new(node : XML::Node)
+    node.content.dup
+  end
+
+  def to_xml(*, key : String? = nil, indent : IndentOptions = nil) : String
     if key
-      XML.build_fragment(indent: indent) { |xml| xml.element(key) { xml.text self } }
+      XML.build_fragment(indent: indent) { |xml| xml.element(key) { xml.text to_s } }
     else
-      self
+      to_s
     end
   end
 
+  def to_xml(io : IO, *, key : String? = nil, indent : IndentOptions = nil) : Nil
+    io << to_xml key: key, indent: indent
+  end
+
   def to_xml(xml : XML::Builder) : Nil
-    xml.text self
-  end
-
-  def self.from_xml(value : String)
-    from_xml parse_xml value
-  end
-
-  def self.from_xml(node : XML::Node)
-    node.content
+    xml.text to_s
   end
 end
 
 struct Bool
-  # Returns an XML string representation of the object.
-  def to_xml(*, key : String? = nil, indent = nil) : String
+  def self.new(xml : XML::Node)
+    new node.content
+  end
+
+  def to_xml(*, key : String? = nil, indent : IndentOptions = nil) : String
     if key
       XML.build_fragment(indent: indent) { |xml| xml.element(key) { xml.text to_s } }
     else
@@ -99,26 +140,17 @@ struct Bool
     end
   end
 
+  def to_xml(io : IO, *, key : String? = nil, indent : IndentOptions = nil) : Nil
+    io << to_xml key: key, indent: indent
+  end
+
   def to_xml(xml : XML::Builder) : Nil
     xml.text to_s
-  end
-
-  def self.from_xml(value : String)
-    from_xml parse_xml value
-  end
-
-  def self.from_xml(node : XML::Node)
-    case node.content
-    when "true"   then true
-    when "false"  then false
-    else          raise "cannot parse value to bool"
-    end
   end
 end
 
 struct Char
-  # Returns an XML string representation of the object.
-  def to_xml(*, key : String? = nil, indent = nil) : String
+  def to_xml(*, key : String? = nil, indent : IndentOptions = nil) : String
     if key
       XML.build_fragment(indent: indent) { |xml| xml.element(key) { xml.text to_s } }
     else
@@ -126,23 +158,26 @@ struct Char
     end
   end
 
+  def to_xml(io : IO, *, key : String? = nil, indent : IndentOptions = nil) : Nil
+    io << to_xml key: key, indent: indent
+  end
+
   def to_xml(xml : XML::Builder) : Nil
     xml.text to_s
   end
 
-  def self.from_xml(value : String)
-    from_xml parse_xml value
+  def self.from_xml(node : XML::Node)
+    raise "invalid character sequence" unless node.content.chars.size != 1
+    node.content.chars[0]
   end
 
-  def self.from_xml(node : XML::Node)
-    raise("invalid character sequence") if node.content.chars.size > 1
-    node.content.chars[0] || '\0'
+  def self.from_xml(xml : String)
+    from_xml parse_xml xml
   end
 end
 
 struct Symbol
-  # Returns an XML string representation of the object.
-  def to_xml(*, key : String? = nil, indent = nil) : String
+  def to_xml(*, key : String? = nil, indent : IndentOptions = nil) : String
     if key
       XML.build_fragment(indent: indent) { |xml| xml.element(key) { xml.text to_s } }
     else
@@ -150,18 +185,21 @@ struct Symbol
     end
   end
 
-  def to_xml(xml : XML::Builder) : Nil
-    xml.text to_s
+  def to_xml(io : IO, *, key : String? = nil, indent : IndentOptions = nil) : Nil
+    io << to_xml key: key, indent: indent
   end
 
-  def self.from_xml(_x)
-    raise SerializableError.new "Cannot deserialize to a Symbol"
+  def to_xml(xml : XML::Builder) : Nil
+    xml.text to_s
   end
 end
 
 struct Path
-  # Returns an XML string representation of the object.
-  def to_xml(*, key : String? = nil, indent = nil) : String
+  def self.new(xml : XML::Node)
+    new xml.content
+  end
+
+  def to_xml(*, key : String? = nil, indent : IndentOptions = nil) : String
     if key
       XML.build_fragment(indent: indent) { |xml| xml.element(key) { xml.text @name } }
     else
@@ -169,319 +207,124 @@ struct Path
     end
   end
 
+  def to_xml(io : IO, *, key : String? = nil, indent : IndentOptions = nil) : Nil
+    io << to_xml key: key, indent: indent
+  end
+
   def to_xml(xml : XML::Builder) : Nil
     xml.text @name
-  end
-
-  def self.from_xml(value : String)
-    from_xml parse_xml value
-  end
-
-  def self.from_xml(node : XML::Node)
-    new node.content
   end
 end
 
 class Array(T)
-  # Returns an XML string representation of the object.
-  def to_xml(*, key : String = "item", indent = nil) : String
+  def self.new(node : XML::Node)
+    arr = new
+    node.children.each do |child|
+      arr << T.new child
+    end
+  end
+
+  def to_xml(*, key : String = "item", indent : IndentOptions = nil) : String
     XML.build_fragment(indent: indent) do |xml|
       each { |i| xml.element(key) { i.to_xml xml } }
     end
   end
 
+  def to_xml(io : IO, *, key : String = "item", indent : IndentOptions = nil) : Nil
+    io << to_xml key: key, indent: indent
+  end
+
   def to_xml(xml : XML::Builder, key : String) : Nil
     each { |i| xml.element(key) { i.to_xml xml } }
-  end
-
-  def self.from_xml(value : String)
-    from_xml parse_xml value
-  end
-
-  def self.from_xml(node : XML::Node)
-    arr = new
-    node.children.each do |child|
-      arr << T.from_xml child
-    end
-    arr
   end
 end
 
 class Deque(T)
-  # Returns an XML string representation of the object.
-  def to_xml(*, key : String = "item", indent = nil) : String
+  def self.new(node : XML::Node)
+    deq = new
+    node.children.each do |child|
+      deq << T.new child
+    end
+  end
+
+  def to_xml(*, key : String = "item", indent : IndentOptions = nil) : String
     XML.build_fragment(indent: indent) do |xml|
       each { |i| xml.element(key) { i.to_xml xml } }
     end
   end
 
+  def to_xml(io : IO, *, key : String = "item", indent : IndentOptions = nil) : Nil
+    io << to_xml key: key, indent: indent
+  end
+
   def to_xml(xml : XML::Builder, key : String) : Nil
     each { |i| xml.element(key) { i.to_xml xml } }
-  end
-
-  def self.from_xml(value : String)
-    from_xml parse_xml value
-  end
-
-  def self.from_xml(node : XML::Node)
-    deq = new
-    node.children.each do |child|
-      deq << T.from_xml child
-    end
-    deq
   end
 end
 
 struct Tuple(*T)
-  # Returns an XML string representation of the object.
-  def to_xml(*, key : String = "item", indent = nil) : String
-    XML.build_fragment(indent: indent) do |xml|
-      each { |i| xml.element(key) { i.to_xml xml } }
-    end
-  end
-
-  def to_xml(xml : XML::Builder, key : String) : Nil
-    each { |i| xml.element(key) { i.to_xml xml } }
-  end
-
-  def self.from_xml(value : String)
-    from_xml parse_xml value
-  end
-
-  def self.from_xml(node : XML::Node)
+  def self.new(node : XML::Node)
     {% begin %}
       new(
         {% for i in 0...T.size %}
-          (self[{{ i }}].from_xml node.children[{{ i }}]),
+          (self[{{ i }}].new node.children[{{ i }}]),
         {% end %}
       )
     {% end %}
   end
-end
 
-struct Set(T)
-  # Returns an XML string representation of the object.
-  def to_xml(*, key : String = "item", indent = nil) : String
+  def to_xml(*, key : String = "item", indent : IndentOptions = nil) : String
     XML.build_fragment(indent: indent) do |xml|
       each { |i| xml.element(key) { i.to_xml xml } }
     end
   end
 
+  def to_xml(io : IO, *, key : String = "item", indent : IndentOptions = nil) : Nil
+    io << to_xml key: key, indent: indent
+  end
+
   def to_xml(xml : XML::Builder, key : String) : Nil
     each { |i| xml.element(key) { i.to_xml xml } }
-  end
-
-  def self.from_xml(value : String)
-    from_xml parse_xml value
-  end
-
-  def self.from_xml(node : XML::Node)
-    set = new
-    node.children.each do |child|
-      set << T.from_xml child
-    end
-    set
-  end
-end
-
-struct Enum
-  # Returns an XML string representation of all the members in the enum.
-  def self.to_xml(*, key : String? = nil, indent = nil) : String
-    if key
-      XML.build_fragment(indent: indent) do |xml|
-        names.each { |n| xml.element(key) { xml.text n } }
-      end
-    else
-      XML.build_fragment(indent: indent) do |xml|
-        names.each { |n| xml.element(n) { } }
-      end
-    end
-  end
-
-  # Returns an XML string representation of the object.
-  def to_xml(*, indent = nil) : String
-    XML.build_fragment(indent: indent) do |xml|
-      xml.element(to_s) { }
-    end
-  end
-
-  def to_xml(xml : XML::Builder) : Nil
-    xml.element(to_s) { }
-  end
-
-  def self.from_xml(value : String)
-    from_xml parse_xml value
-  end
-
-  def self.from_xml(node : XML::Node)
-    parse node.children.empty? ? node.name : node.children[0].name
   end
 end
 
 struct Union(*T)
-  def self.from_xml(node : XML::Node)
+  def self.new(node : XML::Node)
+    return Nil if node.content.empty? && T.types.includes?(Nil)
+
     {% begin %}
-      if T.types.includes? Nil
-        return nil
-      {% for type in %w(Int Float String Bool) %}
-      elsif T.types.includes? {{ type.id }}
-        return {{ type.id }}.from_xml node
-      {% end %}
-      end
-
-      {% primitives = [String, Bool, Nil] + Number::Primitive.union_types %}
-      {% non_primitives = T.reject { |t| primitives.includes? t } %}
-
-      {% if non_primitives.size == 1 %}
-        return {{ non_primitives[0] }}.from_xml node
+      {% if T.includes? Nil %}
+        return Nil
+      {% elsif T.includes? Int %}
+        return Int
+      {% elsif T.includes? Float32 %}
+        return Float32
+      {% elsif T.includes? Float64 %}
+        return Float64
+      {% elsif T.includes? String %}
+        return String
+      {% elsif T.includes? Bool %}
+        return Bool
       {% else %}
-        {% for type in non_primitives %}
-          begin
-            value = {{ type.id }}.to_xml node
-            return value if value
-          rescue
-          end
+        {% debug %}
+        {% primitives = [Nil, String, Bool] + Number::Primitive.union_types %}
+        {% others = T.reject &.in?(primitives) %}
+        {% if others.size == 1 %}
+          return {{ others[0] }}
+        {% else %}
+          {% for type in others %}
+            begin
+              {% if type.overrides?(Object, :from_xml) %}
+                return {{ type }}.from_xml node
+              {% else %}
+                return {{ type }}.new node
+              {% end %}
+            rescue SerializableError
+            end
+          {% end %}
+          raise "could not parse #{self} from '#{node.content}'"
         {% end %}
       {% end %}
-
-      raise "Couldn't parse #{self} from element"
     {% end %}
-  end
-end
-
-class Hash(K, V)
-  # Returns an XML string representation of the object.
-  def to_xml(*, indent = nil) : String
-    XML.build_fragment(indent: indent) { |xml| to_xml xml }
-  end
-
-  def to_xml(xml : XML::Builder) : Nil
-    each { |k, v| xml.element(k.to_s) { v.to_xml xml } }
-  end
-
-  def self.from_xml(value : String)
-    from_xml parse_xml value
-  end
-
-  def self.from_xml(node : XML::Node)
-    hash = new
-    node.children.each do |child|
-      hash[child.name.as?(K) || K.from_xml(child)] = V.from_xml child
-    end
-    hash
-  end
-end
-
-struct NamedTuple
-  # Returns an XML string representation of the object.
-  def to_xml(*, indent = nil) : String
-    XML.build_fragment(indent: indent) { |xml| to_xml xml }
-  end
-
-  def to_xml(xml : XML::Builder) : Nil
-    each { |k, v| xml.element(k.to_s) { v.to_xml xml } }
-  end
-
-  def self.from_xml(value : String)
-    from_xml parse_xml value
-  end
-
-  def self.from_xml(node : XML::Node)
-    {% begin %}
-      {% for key, type in T %}
-        if child = node.children.find { |n| n.name == {{ key.id.stringify }} }
-          %var{key.id} = self[{{ key.symbolize }}].from_xml child
-        elsif {{ type }}.nilable?
-          %var{key.id} = nil
-        else
-          raise "Missing XML element '#{{{ key.id.stringify }}}'"
-        end
-      {% end %}
-
-      new(
-        {% for key, type in T %}
-          {{ key.id.stringify }}: %var{key.id}.as({{ type }}),
-        {% end %}
-      )
-    {% end %}
-  end
-end
-
-struct Range(B, E)
-  # Returns an XML string representation of the object.
-  def to_xml(*, key : String = "item", indent = nil) : String
-    to_a.to_xml key: key, indent: indent
-  end
-
-  def to_xml(xml : XML::Builder) : Nil
-    to_a.to_xml xml
-  end
-
-  def self.from_xml(value : String)
-    from_xml parse_xml value
-  end
-
-  def self.from_xml(node : XML::Node)
-    b = B.from_xml node.children.first
-    e = E.from_xml node.children.to_a.last
-    new b, e
-  end
-end
-
-struct Time
-  # Returns an XML string representation of the object.
-  def to_xml(*, key : String? = nil, indent = nil) : String
-    fmt = Format::RFC_3339.format self
-    if key
-      XML.build_fragment(indent: indent) { |xml| xml.element(key) { xml.text fmt } }
-    else
-      fmt
-    end
-  end
-
-  def to_xml(xml : XML::Builder) : Nil
-    fmt = Format::RFC_3339.format self
-    xml.text fmt
-  end
-
-  def self.from_xml(value : String)
-    from_xml parse_xml value
-  end
-
-  def self.from_xml(node : XML::Node)
-    Format::RFC_3339.parse node.content
-  end
-
-  struct Format
-    # Returns an XML string representation of the object.
-    def to_xml(value : Time, *, key : String? = nil, indent = nil) : String
-      fmt = format value
-      if key
-        XML.build_fragment(indent: indent) { |xml| xml.element(key) { xml.text fmt } }
-      else
-        fmt
-      end
-    end
-
-    def to_xml(value : Time, xml : XML::Builder) : Nil
-      format(value).to_xml xml
-    end
-  end
-end
-
-struct Nil
-  # Returns an XML string representation of the object.
-  def to_xml(key : String? = nil) : String
-    if key
-      XML.build_fragment { |xml| xml.element(key) { } }
-    else
-      ""
-    end
-  end
-
-  def to_xml(_x) : Nil
-  end
-
-  def self.from_xml(_x)
   end
 end
