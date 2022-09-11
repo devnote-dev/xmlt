@@ -71,7 +71,19 @@ module XMLT
   # * `XMLT::Field`: sets general (de)serialization options
   # * `XMLT::Options`: sets the XML document and indent options
   module Serializable
-    def to_xml : String
+    # TODO: pos args: version, encoding
+    def to_xml(*, indent : IndentOptions = nil) : String
+      {% begin %}
+        {% anno_opts = @type.annotation(Options) %}
+        version = {{ (anno_opts && anno_opts[:version]) || nil }}
+        encoding = {{ (anno_opts && anno_opts[:encoding]) || nil }}
+        XML.build(version, encoding, indent) do |xml|
+          to_xml builder: xml
+        end
+      {% end %}
+    end
+
+    def to_xml(*, builder : XML::Builder) : Nil
       {% begin %}
         {% props = {} of Nil => Nil %}
         {% for ivar in @type.instance_vars %}
@@ -80,84 +92,71 @@ module XMLT
             {% anno_attrs = ivar.annotation(Attributes) %}
             {% anno_cdata = ivar.annotation(CData) %}
             {% props[ivar.id] = {
-                key:      ((anno_field && anno_field[:key]) || ivar).id.stringify,
-                item_key: (anno_field && anno_field[:item_key]) || "item",
-                omit_nil: (anno_field && anno_field[:omit_nil]),
-                attrs:    (anno_attrs && anno_attrs.named_args),
-                cdata:    !!anno_cdata,
+              key: ((anno_field && anno_field[:key]) || ivar).id.stringify,
+              item_key: (anno_field && anno_field[:item_key]) || "item",
+              omit_nil: (anno_field && anno_field[:omit_nil]),
+              attrs: (anno_attrs && anno_attrs.named_args),
+              cdata: !!anno_cdata
             } %}
           {% end %}
         {% end %}
 
-        {% anno_ops = @type.annotation(Options) %}
-        %version = {{ (anno_ops && anno_ops[:version]) || nil }}
-        %encoding = {{ anno_ops && anno_ops[:encoding] || nil }}
-        %indent = {{ anno_ops && anno_ops[:indent] || nil }}
-        str = XML.build(%version, %encoding, %indent) do |xml|
-          xml.element({{ @type.id.stringify }}) do
-            {% for name, prop in props %}
-              value = {{ name }}
-              attrs = {{ prop[:attrs] }}
-              {% if prop[:cdata] %}
-                xml.element({{ prop[:key] }}) do
-                  xml.cdata value.to_s
-                  xml.attributes(attrs) if attrs
-                end
-              {% else %}
-                case value
-                when Number, String, Char, Bool, Symbol, Path, Enum, Hash, NamedTuple, Range, Time
-                  xml.element({{ prop[:key] }}) do
-                    value.to_xml xml
-                    xml.attributes(attrs) if attrs
-                  end
-                when Nil
-                  {% unless prop[:omit_nil] %}
-                    xml.element({{ prop[:key] }}) { xml.attributes(attrs) if attrs }
-                  {% end %}
-                when Array, Deque, Tuple, Set
-                  xml.element({{ prop[:key] }}) do
-                    value.to_xml xml, {{ prop[:item_key] }}
-                    xml.attributes(attrs) if attrs
-                  end
-                else
-                  value.try &.to_xml xml
-                end
-              {% end %}
-            {% end %}
-          end
-        end
+        builder.element({{ @type.id.stringify }}) do
+          {% for name, prop in props %}
+            value = {{ name }}
+            attrs = {{ prop[:attrs] }}
 
-        str
+            {% if prop[:cdata] %}
+              builder.cdata value.to_s
+              builder.attributes(attrs) if attrs
+            {% else %}
+              case value
+              when Number, String, Char, Bool, Symbol #, Path, Enum, Hash, NamedTuple, Range, Time
+                builder.element({{ prop[:key] }}) do
+                  value.to_xml builder
+                  builder.attributes(attrs) if attrs
+                end
+              when Nil
+                {% unless prop[:omit_nil] %}
+                  builder.element({{ prop[:key] }}) { builder.atrributes(attrs) if attrs }
+                {% end %}
+              when Array, Deque #, Tuple, Set
+                builder.element({{ prop[:key] }}) do
+                  value.to_xml builder, {{ prop[:item_key] }}
+                  builder.attributes(attrs) if attrs
+                end
+              else
+                if value.responds_to? :to_xml
+                  value.to_xml builder: builder
+                else
+                  raise "cannot serialize type #{value}"
+                end
+              end
+            {% end %}
+          {% end %}
+        end
       {% end %}
     end
 
     macro included
-      def self.new(xml : XML::Node, *, root : String? = nil)
-        root ||= {{ @type.id.stringify }}
-        if xml.name == root
-          from_xml_node xml
-        elsif node = xml.children.find { |n| n.name == root }
-          from_xml_node node
-        else
-          raise SerializableError.new "Root element '#{root}' not found"
-        end
+      def self.new(node : XML::Node)
+        new_from_xml_source node
       end
 
-      private def self.from_xml_node(xml : XML::Node)
+      private def self.new_from_xml_source(node : XML::Node)
         instance = allocate
-        instance.initialize __xml_deserializable: xml
+        instance.initialize __xml_deserializable: node
         GC.add_finalizer(instance) if instance.responds_to? :finalize
         instance
       end
 
       macro inherited
-        def self.new(xml : XML::Node)
-          from_xml_node xml
+        def self.new(node : XML::Node)
+          new_from_xml_source node
         end
       end
     end
 
-    # Creates a new instance of the class or struct from an XML node.
     def initialize(*, __xml_deserializable xml : XML::Node)
       {% begin %}
         {% props = {} of Nil => Nil %}
@@ -165,11 +164,11 @@ module XMLT
           {% anno_field = ivar.annotation(Field) %}
           {% unless anno_field && (anno_field[:ignore] || anno_field[:ignore_deserialize]) %}
             {% props[ivar.id] = {
-                type:        ivar.type,
-                key:         ((anno_field && anno_field[:key]) || ivar).id.stringify,
-                has_default: ivar.has_default_value? || ivar.type.nilable?,
-                default:     ivar.default_value,
-                new_root:    anno_field && anno_field[:new_root]
+              type: ivar.type,
+              key: ((anno_field && anno_field[:key]) || ivar).id.stringify,
+              has_default: ivar.has_default_value? || ivar.type.nilable?,
+              default: ivar.default_value,
+              new_root: anno_field && anno_field[:new_root]
             } %}
             %var{props[ivar.id][:key]} = nil
           {% end %}
@@ -179,26 +178,26 @@ module XMLT
           if node = xml.children.find { |n| n.name == {{ prop[:key] }} }
             begin
               {% if prop[:new_root] %}
-                %var{name} = {{ prop[:type] }}.from_xml node, root: {{ prop[:key] }}
+                %var{name} = {{ prop[:type] }}.new node, root: {{ prop[:key] }}
               {% else %}
-                %var{name} = {{ prop[:type] }}.from_xml node
+                %var{name} = {{ prop[:type] }}.new node
               {% end %}
             rescue ex
-              raise SerializableError.new ex, {{ name.id.stringify }}, {{ prop[:type].id.stringify }}
+              raise "failed to deserialize '#{{{ name.id.stringify }}}' to type #{{{ prop[:type].id.stringify }}}:\n#{ex}"
             end
           elsif {{ prop[:has_default] }}
             %var{name} = {{ prop[:default] }}
           else
-            raise SerializableError.new "Missing XML element '#{{{ prop[:key] }}}'"
+            raise "missing XML element '#{{{ prop[:key] }}}'"
           end
         {% end %}
 
         {% for name, prop in props %}
           unless %var{name} || {{ prop[:has_default] }} || Union({{ prop[:type] }}).nilable?
-            raise SerializableError.new "Missing XML element '#{{{ prop[:key] }}}'"
-          else
-            @{{ name }} = %var{name}.as({{ prop[:type] }})
+            raise "missing XML element '#{{{ prop[:key] }}}'"
           end
+
+          @{{ name }} = %var{name}.as({{ prop[:type] }})
         {% end %}
       {% end %}
     end
