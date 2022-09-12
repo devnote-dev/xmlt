@@ -1,13 +1,11 @@
-alias IndentOptions = String | Int32 | Bool | Nil
-
 class Object
-  def to_xml(*, indent : IndentOptions = nil) : String
+  def to_xml(*, indent : XMLT::IndentOptions = nil) : String
     String.build do |str|
       to_xml str
     end
   end
 
-  def to_xml(io : IO, *, indent : IndentOptions = nil) : Nil
+  def to_xml(io : IO, *, indent : XMLT::IndentOptions = nil) : Nil
     to_xml io
   end
 
@@ -38,7 +36,7 @@ class Object
 end
 
 struct Nil
-  def to_xml(*, key : String? = nil, indent : IndentOptions = nil) : String
+  def to_xml(*, key : String? = nil, indent : XMLT::IndentOptions = nil) : String
     if key
       XML.build_fragment(indent: indent) { |xml| xml.element(key) { } }
     else
@@ -46,7 +44,7 @@ struct Nil
     end
   end
 
-  def to_xml(io : IO, *, key : String? = nil, indent : IndentOptions = nil) : Nil
+  def to_xml(io : IO, *, key : String? = nil, indent : XMLT::IndentOptions = nil) : Nil
     io << to_xml key: key, indent: indent
   end
 
@@ -63,7 +61,7 @@ struct Int{{ base.id }}
     node.content.to_i{{ base.id }}
   end
 
-  def to_xml(*, key : String? = nil, indent : IndentOptions = nil) : String
+  def to_xml(*, key : String? = nil, indent : XMLT::IndentOptions = nil) : String
     if key
       XML.build_fragment(indent: indent) { |xml| xml.element(key) { xml.text to_s } }
     else
@@ -71,7 +69,7 @@ struct Int{{ base.id }}
     end
   end
 
-  def to_xml(io : IO, *, key : String? = nil, indent : IndentOptions = nil) : Nil
+  def to_xml(io : IO, *, key : String? = nil, indent : XMLT::IndentOptions = nil) : Nil
     io << to_xml key: key, indent: indent
   end
 
@@ -87,7 +85,7 @@ struct Float{{ base.id }}
     node.content.to_f{{ base.id }}
   end
 
-  def to_xml(*, key : String? = nil, indent : IndentOptions = nil) : String
+  def to_xml(*, key : String? = nil, indent : XMLT::IndentOptions = nil) : String
     if key
       XML.build_fragment(indent: indent) { |xml| xml.element(key) { xml.text to_s } }
     else
@@ -95,7 +93,7 @@ struct Float{{ base.id }}
     end
   end
 
-  def to_xml(io : IO, *, key : String? = nil, indent : IndentOptions = nil) : Nil
+  def to_xml(io : IO, *, key : String? = nil, indent : XMLT::IndentOptions = nil) : Nil
     io << to_xml key: key, indent: indent
   end
 
@@ -110,7 +108,7 @@ class String
     node.content.dup
   end
 
-  def to_xml(*, key : String? = nil, indent : IndentOptions = nil) : String
+  def to_xml(*, key : String? = nil, indent : XMLT::IndentOptions = nil) : String
     if key
       XML.build_fragment(indent: indent) { |xml| xml.element(key) { xml.text to_s } }
     else
@@ -118,7 +116,7 @@ class String
     end
   end
 
-  def to_xml(io : IO, *, key : String? = nil, indent : IndentOptions = nil) : Nil
+  def to_xml(io : IO, *, key : String? = nil, indent : XMLT::IndentOptions = nil) : Nil
     io << to_xml key: key, indent: indent
   end
 
@@ -132,7 +130,7 @@ struct Bool
     new node.content
   end
 
-  def to_xml(*, key : String? = nil, indent : IndentOptions = nil) : String
+  def to_xml(*, key : String? = nil, indent : XMLT::IndentOptions = nil) : String
     if key
       XML.build_fragment(indent: indent) { |xml| xml.element(key) { xml.text to_s } }
     else
@@ -140,7 +138,7 @@ struct Bool
     end
   end
 
-  def to_xml(io : IO, *, key : String? = nil, indent : IndentOptions = nil) : Nil
+  def to_xml(io : IO, *, key : String? = nil, indent : XMLT::IndentOptions = nil) : Nil
     io << to_xml key: key, indent: indent
   end
 
@@ -150,7 +148,7 @@ struct Bool
 end
 
 struct Char
-  def to_xml(*, key : String? = nil, indent : IndentOptions = nil) : String
+  def to_xml(*, key : String? = nil, indent : XMLT::IndentOptions = nil) : String
     if key
       XML.build_fragment(indent: indent) { |xml| xml.element(key) { xml.text to_s } }
     else
@@ -158,7 +156,7 @@ struct Char
     end
   end
 
-  def to_xml(io : IO, *, key : String? = nil, indent : IndentOptions = nil) : Nil
+  def to_xml(io : IO, *, key : String? = nil, indent : XMLT::IndentOptions = nil) : Nil
     io << to_xml key: key, indent: indent
   end
 
@@ -177,7 +175,7 @@ struct Char
 end
 
 struct Symbol
-  def to_xml(*, key : String? = nil, indent : IndentOptions = nil) : String
+  def to_xml(*, key : String? = nil, indent : XMLT::IndentOptions = nil) : String
     if key
       XML.build_fragment(indent: indent) { |xml| xml.element(key) { xml.text to_s } }
     else
@@ -185,7 +183,7 @@ struct Symbol
     end
   end
 
-  def to_xml(io : IO, *, key : String? = nil, indent : IndentOptions = nil) : Nil
+  def to_xml(io : IO, *, key : String? = nil, indent : XMLT::IndentOptions = nil) : Nil
     io << to_xml key: key, indent: indent
   end
 
@@ -199,7 +197,7 @@ struct Path
     new xml.content
   end
 
-  def to_xml(*, key : String? = nil, indent : IndentOptions = nil) : String
+  def to_xml(*, key : String? = nil, indent : XMLT::IndentOptions = nil) : String
     if key
       XML.build_fragment(indent: indent) { |xml| xml.element(key) { xml.text @name } }
     else
@@ -207,7 +205,7 @@ struct Path
     end
   end
 
-  def to_xml(io : IO, *, key : String? = nil, indent : IndentOptions = nil) : Nil
+  def to_xml(io : IO, *, key : String? = nil, indent : XMLT::IndentOptions = nil) : Nil
     io << to_xml key: key, indent: indent
   end
 
@@ -224,13 +222,13 @@ class Array(T)
     end
   end
 
-  def to_xml(*, key : String = "item", indent : IndentOptions = nil) : String
+  def to_xml(*, key : String = "item", indent : XMLT::IndentOptions = nil) : String
     XML.build_fragment(indent: indent) do |xml|
       each { |i| xml.element(key) { i.to_xml xml } }
     end
   end
 
-  def to_xml(io : IO, *, key : String = "item", indent : IndentOptions = nil) : Nil
+  def to_xml(io : IO, *, key : String = "item", indent : XMLT::IndentOptions = nil) : Nil
     io << to_xml key: key, indent: indent
   end
 
@@ -247,13 +245,13 @@ class Deque(T)
     end
   end
 
-  def to_xml(*, key : String = "item", indent : IndentOptions = nil) : String
+  def to_xml(*, key : String = "item", indent : XMLT::IndentOptions = nil) : String
     XML.build_fragment(indent: indent) do |xml|
       each { |i| xml.element(key) { i.to_xml xml } }
     end
   end
 
-  def to_xml(io : IO, *, key : String = "item", indent : IndentOptions = nil) : Nil
+  def to_xml(io : IO, *, key : String = "item", indent : XMLT::IndentOptions = nil) : Nil
     io << to_xml key: key, indent: indent
   end
 
@@ -273,13 +271,13 @@ struct Tuple(*T)
     {% end %}
   end
 
-  def to_xml(*, key : String = "item", indent : IndentOptions = nil) : String
+  def to_xml(*, key : String = "item", indent : XMLT::IndentOptions = nil) : String
     XML.build_fragment(indent: indent) do |xml|
       each { |i| xml.element(key) { i.to_xml xml } }
     end
   end
 
-  def to_xml(io : IO, *, key : String = "item", indent : IndentOptions = nil) : Nil
+  def to_xml(io : IO, *, key : String = "item", indent : XMLT::IndentOptions = nil) : Nil
     io << to_xml key: key, indent: indent
   end
 

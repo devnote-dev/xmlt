@@ -43,4 +43,6 @@ require "./serializable"
 # fox.to_xml # => <Animal><species>mammal</species><family>dog</family></Animal>
 module XMLT
   VERSION = "0.2.0"
+
+  alias IndentOptions = String | Int32 | Bool | Nil
 end
