@@ -290,38 +290,28 @@ end
 
 struct Union(*T)
   def self.new(node : XML::Node)
-    return Nil if node.content.empty? && T.types.includes?(Nil)
-
     {% begin %}
-      {% if T.includes? Nil %}
-        return Nil
-      {% elsif T.includes? Int %}
-        return Int
-      {% elsif T.includes? Float32 %}
-        return Float32
-      {% elsif T.includes? Float64 %}
-        return Float64
-      {% elsif T.includes? String %}
-        return String
-      {% elsif T.includes? Bool %}
-        return Bool
+      {% for type in T %}
+        {% if Number::Primitive.union_types.includes?(type) || type == Bool %}
+          return {{ type }}.new node
+        {% elsif type == String %}
+          return node.content.dup
+        {% end %}
+      {% end %}
+      {% primitives = [Nil, String, Bool] + Number::Primitive.union_types %}
+      {% others = T.reject { |t| primitives.includes?(t) } %}
+      {% if others.size == 1 %}
+        return {{ others[0] }}.from_xml node
       {% else %}
-        {% debug %}
-        {% primitives = [Nil, String, Bool] + Number::Primitive.union_types %}
-        {% others = T.reject &.in?(primitives) %}
-        {% if others.size == 1 %}
-          return {{ others[0] }}
+        {% for type in others %}
+          begin
+            return {{ type }}.from_xml node
+          rescue SerializableError
+          end
+        {% end %}
+        {% if T.includes?(Nil) %}
+          return nil
         {% else %}
-          {% for type in others %}
-            begin
-              {% if type.overrides?(Object, :from_xml) %}
-                return {{ type }}.from_xml node
-              {% else %}
-                return {{ type }}.new node
-              {% end %}
-            rescue SerializableError
-            end
-          {% end %}
           raise "could not parse #{self} from '#{node.content}'"
         {% end %}
       {% end %}
