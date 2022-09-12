@@ -1,9 +1,11 @@
-class SerializableError < Exception
-  def initialize(msg)
-    super msg
-  end
+module XMLT
+  class Error < Exception
+    def initialize(message)
+      super message
+    end
 
-  def initialize(err : Exception, name : String, type : String)
-    super "Failed to deserialize '#{name}' to #{type}:\n#{err}"
+    def initialize(ex : Exception, name : String, type : String)
+      super "failed to deserialize '#{name}' to #{type}", cause: ex
+    end
   end
 end

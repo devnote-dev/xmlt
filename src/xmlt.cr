@@ -1,3 +1,4 @@
+require "xml"
 require "./annotations"
 require "./errors"
 require "./objects"

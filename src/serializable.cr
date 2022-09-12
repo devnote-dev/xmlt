@@ -1,7 +1,3 @@
-require "xml"
-require "./annotations"
-require "./errors"
-
 module XMLT
   # The `XMLT::Serializable` module generates methods for serializing and deserializing
   # classes or structs when included.
@@ -129,7 +125,7 @@ module XMLT
                 if value.responds_to? :to_xml
                   value.to_xml builder: builder
                 else
-                  raise "cannot serialize type #{value}"
+                  raise Error.new "cannot serialize type #{value}"
                 end
               end
             {% end %}
@@ -183,18 +179,18 @@ module XMLT
                 %var{name} = {{ prop[:type] }}.new node
               {% end %}
             rescue ex
-              raise "failed to deserialize '#{{{ name.id.stringify }}}' to type #{{{ prop[:type].id.stringify }}}:\n#{ex}"
+              raise Error.new ex, {{ name.id.stringify }}, {{ prop[:type].id.stringify }}
             end
           elsif {{ prop[:has_default] }}
             %var{name} = {{ prop[:default] }}
           else
-            raise "missing XML element '#{{{ prop[:key] }}}'"
+            raise Error.new "missing XML element '#{{{ prop[:key] }}}'"
           end
         {% end %}
 
         {% for name, prop in props %}
           unless %var{name} || {{ prop[:has_default] }} || Union({{ prop[:type] }}).nilable?
-            raise "missing XML element '#{{{ prop[:key] }}}'"
+            raise Error.new "missing XML element '#{{{ prop[:key] }}}'"
           end
 
           @{{ name }} = %var{name}.as({{ prop[:type] }})

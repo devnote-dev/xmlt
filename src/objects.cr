@@ -16,7 +16,7 @@ class Object
     if child = node.first_element_child
       child
     else
-      raise "failed to parse XML from string value"
+      raise XMLT::Error.new "failed to parse XML from string value"
     end
   end
 
@@ -167,7 +167,7 @@ struct Char
   end
 
   def self.from_xml(node : XML::Node)
-    raise "invalid character sequence" unless node.content.chars.size != 1
+    raise XMLT::Error.new("invalid character sequence") unless node.content.chars.size != 1
     node.content.chars[0]
   end
 
@@ -306,13 +306,13 @@ struct Union(*T)
         {% for type in others %}
           begin
             return {{ type }}.from_xml node
-          rescue SerializableError
+          rescue XMLT::Error
           end
         {% end %}
         {% if T.includes?(Nil) %}
           return nil
         {% else %}
-          raise "could not parse #{self} from '#{node.content}'"
+          raise XMLT::Error.new "could not parse #{self} from '#{node.content}'"
         {% end %}
       {% end %}
     {% end %}
